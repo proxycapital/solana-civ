@@ -1,9 +1,12 @@
 body {
+  background: rgb(46,63,75);
+  background: linear-gradient(180deg, rgba(46,63,75,1) 0%, rgba(30,39,52,1) 100%);
+}
+
+body.light-mode {
   background: #E0EAFC;
   background: -webkit-linear-gradient(to right, #CFDEF3, #E0EAFC);
   background: linear-gradient(to right, #CFDEF3, #E0EAFC);
-  background: rgb(46,63,75);
-  background: linear-gradient(180deg, rgba(46,63,75,1) 0%, rgba(30,39,52,1) 100%);
 }
 
 .home-container {

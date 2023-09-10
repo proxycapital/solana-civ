@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Container from "@mui/material/Container";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
@@ -15,6 +15,13 @@ const HomePage: React.FC = () => {
     { name: "Initializing game", status: "pending" },
   ]);
   const [showButtons, setShowButtons] = useState(true);
+
+  useEffect(() => {
+    document.body.classList.add('light-mode');
+    return () => {
+      document.body.classList.remove('light-mode');
+    };
+  }, []);
 
   const updateStepStatus = (stepName: string, status: string) => {
     setInitializationSteps((steps) => steps.map((step) => (step.name === stepName ? { ...step, status } : step)));
