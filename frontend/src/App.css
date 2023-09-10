@@ -1,0 +1,231 @@
+body {
+  background: #E0EAFC;
+  background: -webkit-linear-gradient(to right, #CFDEF3, #E0EAFC);
+  background: linear-gradient(to right, #CFDEF3, #E0EAFC);
+  background: rgb(46,63,75);
+  background: linear-gradient(180deg, rgba(46,63,75,1) 0%, rgba(30,39,52,1) 100%);
+}
+
+.home-container {
+  height: 100vh;
+}
+
+.center-grid {
+  min-height: 100vh;
+  margin-top: -100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.logo {
+  max-width: 256px;
+  margin-bottom: 20px;
+}
+
+button.fixed-width-button {
+  width: 200px;
+  margin-top: 15px !important;
+  background-color: #1c97e7;
+}
+
+button.fixed-width-button-secondary {
+  width: 200px;
+  margin-top: 15px !important;
+  border: 1px solid rgb(51 51 52);
+  color: #333;
+}
+
+.full-screen {
+  height: 100vh;
+  width: 100%;
+}
+
+header.top-navigation {
+  background: rgb(34,47,59);
+  background: radial-gradient(circle, rgba(34,47,59,1) 0%, rgba(30,39,52,1) 100%);
+  -ms-flex-negative: 0;
+  border: 1px solid #3c4a57;
+  color: #fff;
+  border-radius: 10px;
+  box-shadow: 0px 2px 7px 0px rgba(0,0,0,0.75);
+  -webkit-box-shadow: 0px 2px 7px 0px rgba(0,0,0,0.75);
+  -moz-box-shadow: 0px 2px 7px 0px rgba(0,0,0,0.75);
+}
+
+.game-container {
+  width: 100%;
+  height: calc(100vh - 50px);
+  overflow: auto;
+}
+
+.game-map {
+  display: grid;
+  grid-template-columns: repeat(20, 100px);
+  grid-template-rows: repeat(20, 100px);
+  /* justify-content: center; */
+}
+
+.game-tile {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  /* border: 1px solid black; */
+  box-sizing: border-box;
+  /* transition: 0.3s ease; */
+}
+
+div.unit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 64px;
+  z-index: 1;
+  width: 80%;
+  height: 80%;
+}
+
+div.unit img {
+  border-radius: 45px;
+  border: 1px solid white;
+}
+
+.unit.selected {
+  box-shadow: 0 0 5px 2px gold;
+  filter: none !important;
+  border-radius: 45px;
+}
+
+.unit-info-window {
+  position: absolute;
+  bottom: 10px;
+  right: 20px;
+  padding: 10px;
+  z-index: 100;
+  background: rgb(34,47,59);
+  background: radial-gradient(circle, rgba(34,47,59,1) 0%, rgba(30,39,52,1) 100%);
+  -ms-flex-negative: 0;
+  border: 1px solid #3c4a57;
+  color: #b7b7ba;
+  font-size: 14px;
+  border-radius: 10px;
+  box-shadow: 0px 2px 7px 0px rgba(0,0,0,0.75);
+  -webkit-box-shadow: 0px 2px 7px 0px rgba(0,0,0,0.75);
+  -moz-box-shadow: 0px 2px 7px 0px rgba(0,0,0,0.75);
+}
+
+.unit-info-window img {
+  width: 200px;
+}
+
+.in-range {
+  filter: grayscale(1);
+}
+
+.game-tile:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  border: 2px solid transparent;
+  box-sizing: border-box;
+  /* cursor: pointer; */
+}
+
+.game-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.game-tile img.terrain {
+  /* width: 100%;
+  height: 100%; */
+  object-fit: cover;
+  width: 114%;
+  height: 110%;
+  position: relative;
+}
+
+.top-menu {
+  display: flex;
+  justify-content: space-between;
+}
+
+.end-turn-button {
+  margin-left: auto;
+  margin-right: 15px;
+}
+
+.no-select {
+  user-select: none;
+  cursor: grab;
+}
+
+.no-select.grabbing {
+  cursor: grabbing !important;
+}
+
+.tile-coordinate {
+  position: relative;
+  margin-top: -20px;
+  color: white;
+  font-size: 12px;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 2px;
+  pointer-events: none;
+}
+
+/* village modal */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal {
+  background: rgb(34,47,59);
+  background: radial-gradient(circle, rgba(34,47,59,1) 0%, rgba(30,39,52,1) 100%);
+  -ms-flex-negative: 0;
+  border: 1px solid #3c4a57;
+  color: #fff;
+  border-radius: 10px;
+  box-shadow: 0px 2px 7px 0px rgba(0,0,0,0.75);
+  -webkit-box-shadow: 0px 2px 7px 0px rgba(0,0,0,0.75);
+  -moz-box-shadow: 0px 2px 7px 0px rgba(0,0,0,0.75);
+}
+
+.modal:focus-visible {
+  outline: none !important;
+}
+
+.close-button {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  cursor: pointer;
+}
+
+/* Console */
+.console-container {
+  padding: 10px;
+  height: 170px;
+  overflow: scroll;
+  background-color: #333;
+  color: white;
+  width: 100%;
+}
+
+.console-message {
+  color: white;
+}
+
+.console-message-error, .error-container .error-message {
+  color: #d10808;
+}
