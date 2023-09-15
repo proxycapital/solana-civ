@@ -1,14 +1,12 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     program_pack::{IsInitialized, Sealed},
-    pubkey::Pubkey,
+    // pubkey::Pubkey,
 };
 
 #[derive(BorshSerialize, BorshDeserialize)]
 pub struct GameAccountState {
-    pub discriminator: String,
     pub is_initialized: bool,
-    pub creator: Pubkey,
     pub map: [u8; 400],
 }
 
@@ -16,7 +14,7 @@ impl GameAccountState {
     pub const DISCRIMINATOR: &'static str = "game";
 
     pub fn get_account_size() -> usize {
-        return (4 + GameAccountState::DISCRIMINATOR.len()) + 1 + 32 + 400;
+        return 1 + 400;
     }
 }
 

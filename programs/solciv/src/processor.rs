@@ -13,9 +13,8 @@ use solana_program::{
     sysvar::{rent::Rent, Sysvar},
 };
 
-// Program entrypoint's implementation
 pub fn process_instruction(
-    program_id: &Pubkey, // Public key of the account the hello world program was loaded into
+    program_id: &Pubkey,
     accounts: &[AccountInfo],
     instruction_data: &[u8],
 ) -> ProgramResult {
@@ -50,6 +49,11 @@ pub fn initialize_game(
         program_id,
     );
 
+    if !player_account.is_signer {
+        msg!("Missing required signature");
+        return Err(ProgramError::MissingRequiredSignature);
+    }
+
     if game_account_pda != *game_account.key {
         msg!("Invalid seeds for PDA");
         return Err(ProgramError::InvalidSeeds);
@@ -58,25 +62,27 @@ pub fn initialize_game(
     let rent = Rent::get()?;
     let rent_lamports = rent.minimum_balance(GameAccountState::get_account_size());
 
-    invoke_signed(
-        &system_instruction::create_account(
-            player_account.key,
-            game_account.key,
-            rent_lamports,
-            GameAccountState::get_account_size() as u64,
-            program_id,
-        ),
-        &[
-            player_account.clone(),
-            game_account.clone(),
-            system_program.clone(),
-        ],
-        &[&[
-            GameAccountState::DISCRIMINATOR.as_ref(),
-            player_account.key.as_ref(),
-            &[bump_seed],
-        ]],
-    )?;
+    if **game_account.try_borrow_lamports()? < rent_lamports {
+        invoke_signed(
+            &system_instruction::create_account(
+                player_account.key,
+                game_account.key,
+                rent_lamports,
+                GameAccountState::get_account_size() as u64,
+                program_id,
+            ),
+            &[
+                player_account.clone(),
+                game_account.clone(),
+                system_program.clone(),
+            ],
+            &[&[
+                GameAccountState::DISCRIMINATOR.as_ref(),
+                player_account.key.as_ref(),
+                &[bump_seed],
+            ]],
+        )?;
+    }
 
     msg!("PDA created: {}", game_account_pda);
 
@@ -90,9 +96,8 @@ pub fn initialize_game(
         return Err(ProgramError::AccountAlreadyInitialized);
     }
 
-    game_data.map = *map;
-    game_data.creator = *player_account.key;
     game_data.is_initialized = true;
+    game_data.map = *map;
 
     msg!("Serializing game data");
     game_data.serialize(&mut &mut game_account.data.borrow_mut()[..])?;
@@ -116,6 +121,11 @@ pub fn initialize_player(program_id: &Pubkey, accounts: &[AccountInfo]) -> Progr
         ],
         program_id,
     );
+
+    if !player_account.is_signer {
+        msg!("Missing required signature");
+        return Err(ProgramError::MissingRequiredSignature);
+    }
 
     if player_balances_pda != *player_balances_account.key {
         msg!("Invalid seeds for PDA");
@@ -157,10 +167,10 @@ pub fn initialize_player(program_id: &Pubkey, accounts: &[AccountInfo]) -> Progr
         return Err(ProgramError::AccountAlreadyInitialized);
     }
 
+    balances_data.is_initialized = true;
     balances_data.gold = 100 as u64;
     balances_data.food = 50 as u64;
     balances_data.lumber = 20 as u64;
-    balances_data.is_initialized = true;
 
     msg!("Serializing balances data");
     balances_data.serialize(&mut &mut player_balances_account.data.borrow_mut()[..])?;
