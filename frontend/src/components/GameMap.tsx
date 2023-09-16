@@ -1,8 +1,10 @@
 import React, { useRef, useEffect, useState } from 'react';
-import Terrain from './Terrain';
+import Terrain, { TileType } from './Terrain';
 import Unit from './Unit';
 import UnitInfoWindow from './UnitInfoWindow';
 import VillageModal from './VillageModal';
+import { useGameState } from '../context/GameStateContext';
+import { initializeGame, getMap } from '../utils/solanaUtils';
 import "../App.css";
 
 interface GameMapProps {
@@ -15,8 +17,10 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
   const cols = 20;
   const isDragging = useRef(false);
   const [showVillageModal, setShowVillageModal] = useState(false);
+  const { updateBalances } = useGameState();
+
   const [tiles, setTiles] = useState([
-    { x: 1, y: 1, type: 'Village' },
+    { x: 1, y: 1, imageIndex: 0, type: 'Village' },
   ]);
   const [units, setUnits] = useState([
     { x: 3, y: 3, type: 'worker', isSelected: false, movementRange: 3 },
@@ -31,6 +35,37 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
   ];
   const containerRef = useRef<HTMLDivElement | null>(null);
   let dragStart = { x: 0, y: 0 };
+  
+  useEffect(() => {
+    // @todo: add better handling for this. Temp backup if initialization failed in HomePage
+    initializeGame().catch(error => console.error('Failed to initialize game', error));
+
+    updateBalances();
+    (async () => {
+      const map = await getMap();
+      if (!map) {
+        return;
+      }
+      console.log(map);
+      let newTiles = [];
+    
+      for (let row = 0; row < 20; row++) {
+        for (let col = 0; col < 20; col++) {
+          const index = row * 20 + col;
+          // @todo: remove this temp hack that places village at (1, 1) tile
+          const tile = col === 1 && row === 1 ? 10 : map[index];
+          if (tile) {
+            newTiles.push({ x: col, y: row, imageIndex: tile, type: TileType[tile as keyof typeof TileType] });
+          } else {
+            console.error('No tile at', col, row);
+          }
+        }
+      }
+      
+      setTiles(newTiles);
+    })();
+    
+  }, []);
 
   const startDrag = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     event.preventDefault();
@@ -131,7 +166,7 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
           const row = Math.floor(index / cols);
           const col = index % cols;
           /* render the tile or default Plains */
-          const currentTile = tiles.find(t => t.x === col && t.y === row) || { type: 'Plains', x: col, y: row };
+          const currentTile = tiles.find(t => t.x === col && t.y === row) || { imageIndex: 0, type: 'Plains', x: col, y: row };
           const currentUnit = units.find(u => u.x === col && u.y === row);
           const isInRangeForAnyUnit = units.some(u => isInRange(u, col, row));
 
@@ -149,7 +184,7 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
                 selectOrMoveUnit(col, row, currentUnit?.type || selectedUnit?.type || 'unknown');
             }}
             >
-              <Terrain x={col} y={row} type={currentTile.type} isInRange={isInRangeForAnyUnit} debug={debug} />
+              <Terrain x={col} y={row} imageIndex={currentTile.imageIndex} isInRange={isInRangeForAnyUnit} debug={debug} />
               {currentUnit && <Unit {...currentUnit} onClick={() => selectOrMoveUnit(col, row, currentUnit.type)} />}
             </div>
           );

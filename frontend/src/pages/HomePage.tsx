@@ -4,6 +4,8 @@ import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
 import { useNavigate } from "react-router-dom";
 import { Connection, Keypair, LAMPORTS_PER_SOL, clusterApiUrl } from "@solana/web3.js";
+import bs58 from "bs58";
+import { initializeGame } from '../utils/solanaUtils';
 import "../App.css";
 
 const HomePage: React.FC = () => {
@@ -32,7 +34,7 @@ const HomePage: React.FC = () => {
     /* if user has a wallet in local storage, use that wallet */
     const existingWalletPublicKey = localStorage.getItem("solanaWalletPublicKey");
     const existingWalletSecretKey = localStorage.getItem("solanaWalletSecretKey");
-    if (existingWalletPublicKey && existingWalletSecretKey) {
+    if (existingWalletPublicKey && existingWalletSecretKey && localStorage.getItem("gameInitialized")) {
       navigate("/game");
       return;
     }
@@ -63,6 +65,8 @@ const HomePage: React.FC = () => {
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: airdropSignature,
       });
+      localStorage.setItem("solanaWalletPublicKey", wallet.publicKey.toString());
+      localStorage.setItem("solanaWalletSecretKey", bs58.encode(wallet.secretKey));
       updateStepStatus("Requesting airdrop", "completed");
     } catch (error) {
       console.log("Error while requesting airdrop: ", error);
@@ -73,7 +77,8 @@ const HomePage: React.FC = () => {
 
     try {
       updateStepStatus("Initializing game", "in-progress");
-      // TODO: Add initialization logic here
+      await initializeGame();
+      localStorage.setItem("gameInitialized", "true");
       updateStepStatus("Initializing game", "completed");
     } catch (error) {
       console.log("Error while initializing the game: ", error);
@@ -82,8 +87,6 @@ const HomePage: React.FC = () => {
       return;
     }
 
-    localStorage.setItem("solanaWalletPublicKey", wallet.publicKey.toString());
-    localStorage.setItem("solanaWalletSecretKey", wallet.secretKey.toString());
     navigate("/game");
   };
 
