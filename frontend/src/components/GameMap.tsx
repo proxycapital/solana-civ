@@ -14,17 +14,22 @@ interface GameMapProps {
   logMessage: (message: string, type?: 'error' | undefined) => void;
 }
 
+interface Tile {
+  x: number;
+  y: number;
+  imageIndex: number;
+  type: string;
+}
+
 const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
   const rows = 20;
   const cols = 20;
   const isDragging = useRef(false);
   const [showVillageModal, setShowVillageModal] = useState(false);
-  const { fetchPlayerState, updateUnits, allUnits } = useGameState();
+  const { fetchPlayerState, cities, allUnits } = useGameState();
   const { program, provider } = useWorkspace();
 
-  const [tiles, setTiles] = useState([
-    { x: 1, y: 1, imageIndex: 0, type: 'Village' },
-  ]);
+  const [tiles, setTiles] = useState([] as Tile[]);
   const [units, setUnits] = useState<Unit[]>(allUnits);
 
   interface Unit {
@@ -36,13 +41,6 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
     movementRange: number;
   }
 
-
-  /*
-    [
-      { x: 3, y: 3, type: 'worker', isSelected: false, movementRange: 3 },
-      { x: 4, y: 3, type: 'warrior', isSelected: false, movementRange: 2 },
-    ]
-  */
   const constructionOptions = [
     { title: 'Barracks', description: 'Produces warriors', cost: 100, image: '/barracks.png' },
     // { title: 'Farm', description: 'Increases food production', cost: 50, image: 'https://place-hold.it/100x100' },
@@ -59,22 +57,28 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
   }, [allUnits]);
   
   useEffect(() => {
-    // // @todo: add better handling for this. Temp backup if initialization failed in HomePage
-    // initializeGame().catch(error => console.error('Failed to initialize game', error));
 
     (async () => {
-      // map
       const map = await getMap(provider, program);
       if (!map) {
         return;
       }
       let newTiles = [];
+      // extract coordinates of all cities into set
+      const cityCoordinates = new Set();
+      cities.forEach(city => {
+        cityCoordinates.add(`${city.x},${city.y}`);
+      });
     
       for (let row = 0; row < 20; row++) {
         for (let col = 0; col < 20; col++) {
           const index = row * 20 + col;
-          // @todo: remove this temp hack that places village at (1, 1) tile
-          const tile = col === 1 && row === 1 ? 10 : map[index];
+          // if there is a city at this coordinate, render it
+          if (cityCoordinates.has(`${col},${row}`)) {
+            newTiles.push({ x: col, y: row, imageIndex: 10, type: 'Village' });
+            continue;
+          }
+          const tile = map[index];
           if (tile) {
             newTiles.push({ x: col, y: row, imageIndex: tile, type: TileType[tile as keyof typeof TileType] });
           } else {
@@ -86,7 +90,7 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
       setTiles(newTiles);
     })();
     
-  }, []);
+  }, [cities]);
 
   const startDrag = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     event.preventDefault();
@@ -182,11 +186,12 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
       <VillageModal show={showVillageModal} onClose={() => setShowVillageModal(false)} options={constructionOptions} />
       {selectedUnit && (
         <UnitInfoWindow
-          type={selectedUnit.type}
-          remainingMoves={selectedUnit.movementRange}
-          movementRange={selectedUnit.movementRange}
-          builds={selectedUnit.type === 'worker' ? 1 : undefined}
-          strength={selectedUnit.type === 'warrior' ? 10 : undefined}
+          unit={selectedUnit}
+          // type={selectedUnit.type}
+          // remainingMoves={selectedUnit.movementRange}
+          // movementRange={selectedUnit.movementRange}
+          // builds={selectedUnit.type === 'worker' ? 1 : undefined}
+          // strength={selectedUnit.type === 'warrior' ? 10 : undefined}
         />
       )}
       <div

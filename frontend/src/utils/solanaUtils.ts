@@ -81,6 +81,7 @@ export const getPlayer = async (provider: AnchorProvider | undefined, program: P
   console.log("[solanaUtils] getPlayer()", playerAccount);
   const balances = playerAccount ? playerAccount.resources : {};
   const units = playerAccount? playerAccount.units : [];
+  const cities = playerAccount? playerAccount.cities : [];
 
   try {
     const balance = await connection.getBalance(provider.publicKey);
@@ -88,7 +89,7 @@ export const getPlayer = async (provider: AnchorProvider | undefined, program: P
   } catch (error) {
     console.error("Failed to fetch balance", error);
   }
-  return { balances, units };
+  return { balances, units, cities };
 };
 
 export const initializeGame = async (provider: AnchorProvider, program: Program<Solciv>) => {
@@ -145,7 +146,6 @@ export const initializeGame = async (provider: AnchorProvider, program: Program<
       player: provider.publicKey,
       systemProgram: anchor.web3.SystemProgram.programId,
     };
-    console.log(program.methods);
     const tx = await program.methods.initializePlayer().accounts(accounts).rpc();
     console.log("Transaction signature", tx);
 
@@ -156,4 +156,31 @@ export const initializeGame = async (provider: AnchorProvider, program: Program<
     const account = await program.account.player.fetch(playerKey);
     console.log("Created player account", account);
   }
+};
+
+export const foundCity = async (provider: AnchorProvider, program: Program<Solciv>, unit: any) => {
+  const [gameKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("GAME"), provider.publicKey.toBuffer()],
+    program.programId
+  );
+
+  const [playerKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("PLAYER"), gameKey.toBuffer(), provider.publicKey.toBuffer()],
+    program.programId
+  );
+  
+  const accounts = {
+    game: gameKey,
+    player: provider.publicKey,
+    playerAccount: playerKey,
+    systemProgram: anchor.web3.SystemProgram.programId,
+  };
+  try {
+    const tx = await program.methods.foundCity(unit.x, unit.y, unit.unitId).accounts(accounts).rpc();
+    console.log(`Found a city TX: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
+  } catch (error) {
+    console.log("Error while founding city: ", error);
+    return error;
+  }
+  return true;
 };

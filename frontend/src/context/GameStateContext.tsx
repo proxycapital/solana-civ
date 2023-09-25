@@ -19,8 +19,8 @@ type Resources = {
 interface GameStateContextType {
   fetchPlayerState: () => Promise<void>;
   fetchGameState: () => Promise<void>;
-  updateUnits: (updatedUnits: any[]) => void;
   game: Game,
+  cities: any[];
   resources: Resources,
   allUnits: any[];
 }
@@ -43,9 +43,10 @@ export const GameStateProvider: React.FC<BaseLayoutProps> = ({ children }) => {
   const { program, provider } = useWorkspace();
   const [resources, setResources] = useState({} as Resources);
   const [game, setGame] = useState({turn: 1, map: []} as Game);
+  const [cities, setCities] = useState([] as any[]);
   const [allUnits, setUnits] = useState([] as any[]);
 
-  const updateUnits = (updatedUnits: any[]) => setUnits(updatedUnits);
+  // const updateUnits = (updatedUnits: any[]) => setUnits(updatedUnits);
 
   const fetchGameState = async () => {
     try {
@@ -69,7 +70,9 @@ export const GameStateProvider: React.FC<BaseLayoutProps> = ({ children }) => {
       if (player && player.units) {
         setUnits(player.units);
       }
-      // @todo: check also day/turn
+      if (player && player.cities) {
+        setCities(player.cities);
+      }
     } catch (error) {
       console.error('Failed to fetch balance', error);
       // @todo: alert for player ?
@@ -82,7 +85,7 @@ export const GameStateProvider: React.FC<BaseLayoutProps> = ({ children }) => {
   }, []);
 
   return (
-    <GameStateContext.Provider value={{ fetchPlayerState, fetchGameState, updateUnits, game, resources, allUnits }}>
+    <GameStateContext.Provider value={{ fetchPlayerState, fetchGameState, game, cities, resources, allUnits }}>
       {children}
     </GameStateContext.Provider>
   );

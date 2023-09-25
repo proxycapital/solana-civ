@@ -144,6 +144,19 @@ div.unit img {
   -moz-box-shadow: 0px 2px 7px 0px rgba(0,0,0,0.75);
 }
 
+.unit-action-button {
+  width: 100%;
+  margin: 10px 0;
+  padding: 5px;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid #3c4a57;
+  color: #fff;
+  border-radius: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
 .unit-info-window img {
   width: 200px;
 }
@@ -172,6 +185,18 @@ div.unit img {
   width: 114%;
   height: 110%;
   position: relative;
+}
+
+.game-tile img.terrain.village {
+  z-index: 1;
+  width: 135%;
+  top: -15px;
+  left: -15px;
+}
+
+.game-tile img.terrain.village:hover {
+  cursor: pointer;
+  filter: drop-shadow(-1px 2px 0 white) drop-shadow(2px -1px 0 rgba(255,255,255,.7)) drop-shadow(-2px -1px 0 rgba(255,255,255,.7)) drop-shadow(1px 1.5px 10px rgba(255,255,255,.5));
 }
 
 .top-menu {

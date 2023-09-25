@@ -51,7 +51,9 @@ describe("solciv", () => {
     console.log("Transaction signature", tx);
 
     const account = await program.account.player.fetch(playerKey);
-    console.log(account);
+
+    expect(account.units.length).equal(3);
+    expect(account.nextUnitId).equal(3);
   });
 
   it("Move unit", async () => {
@@ -89,7 +91,45 @@ describe("solciv", () => {
     }
   });
 
+  it("Found the city", async () => {
+    // get player account and find unit of type "settler"
+    const playerAccount = await program.account.player.fetch(playerKey);
+    const unitId = playerAccount.units.findIndex(unit => Object.keys(unit.unitType)[0] === "settler");
+    const unit = playerAccount.units[unitId];
+
+    // const buff = Buffer.allocUnsafe(4);
+    // buff.writeUInt32LE(playerAccount.nextCityId, 0);
+    // const [cityKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    //   [Buffer.from("CITY"), gameKey.toBuffer(), provider.publicKey.toBuffer(), buff],
+    //   program.programId
+    // );
+    // console.log("City account address", cityKey.toString());
+    
+    const accounts = {
+      game: gameKey,
+      player: provider.publicKey,
+      playerAccount: playerKey,
+      // city: cityKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    };
+    await program.methods.foundCity(unit.x, unit.y, unitId).accounts(accounts).rpc();
+
+    const player = await program.account.player.fetch(playerKey);
+    expect(player.nextCityId).equal(1);
+    // settler unit should be removed
+    expect(player.units.length).equal(2);
+
+    const account = await program.account.player.fetch(playerKey);
+    const city = account.cities[0];
+    console.log(city);
+    expect(account.player.toBase58()).equal(provider.publicKey.toBase58());
+    expect(city.x).equal(unit.x);
+    expect(city.y).equal(unit.y);
+    expect(city.cityId).equal(0);
+  });
+
   it("End 1st turn", async () => {
+    const prevPlayerAccount = await program.account.player.fetch(playerKey);
     const accounts = {
       game: gameKey,
       playerAccount: playerKey,
@@ -98,5 +138,7 @@ describe("solciv", () => {
     await program.methods.endTurn().accounts(accounts).rpc();
     const account = await program.account.game.fetch(gameKey);
     expect(account.turn).equal(2);
+    const playerAccount = await program.account.player.fetch(playerKey);
+    expect(playerAccount.resources.gold).greaterThan(prevPlayerAccount.resources.gold);
   });
 });
