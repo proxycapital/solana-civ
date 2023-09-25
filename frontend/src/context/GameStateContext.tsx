@@ -19,7 +19,6 @@ type Resources = {
 interface GameStateContextType {
   fetchPlayerState: () => Promise<void>;
   fetchGameState: () => Promise<void>;
-  updateUnits: (updatedUnits: any[]) => void;
   game: Game,
   cities: any[];
   resources: Resources,
@@ -47,7 +46,7 @@ export const GameStateProvider: React.FC<BaseLayoutProps> = ({ children }) => {
   const [cities, setCities] = useState([] as any[]);
   const [allUnits, setUnits] = useState([] as any[]);
 
-  const updateUnits = (updatedUnits: any[]) => setUnits(updatedUnits);
+  // const updateUnits = (updatedUnits: any[]) => setUnits(updatedUnits);
 
   const fetchGameState = async () => {
     try {
@@ -86,7 +85,7 @@ export const GameStateProvider: React.FC<BaseLayoutProps> = ({ children }) => {
   }, []);
 
   return (
-    <GameStateContext.Provider value={{ fetchPlayerState, fetchGameState, updateUnits, game, cities, resources, allUnits }}>
+    <GameStateContext.Provider value={{ fetchPlayerState, fetchGameState, game, cities, resources, allUnits }}>
       {children}
     </GameStateContext.Provider>
   );

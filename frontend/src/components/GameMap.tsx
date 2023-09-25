@@ -26,7 +26,7 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
   const cols = 20;
   const isDragging = useRef(false);
   const [showVillageModal, setShowVillageModal] = useState(false);
-  const { fetchPlayerState, updateUnits, allUnits } = useGameState();
+  const { fetchPlayerState, cities, allUnits } = useGameState();
   const { program, provider } = useWorkspace();
 
   const [tiles, setTiles] = useState([] as Tile[]);
@@ -64,10 +64,20 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
         return;
       }
       let newTiles = [];
+      // extract coordinates of all cities into set
+      const cityCoordinates = new Set();
+      cities.forEach(city => {
+        cityCoordinates.add(`${city.x},${city.y}`);
+      });
     
       for (let row = 0; row < 20; row++) {
         for (let col = 0; col < 20; col++) {
           const index = row * 20 + col;
+          // if there is a city at this coordinate, render it
+          if (cityCoordinates.has(`${col},${row}`)) {
+            newTiles.push({ x: col, y: row, imageIndex: 10, type: 'Village' });
+            continue;
+          }
           const tile = map[index];
           if (tile) {
             newTiles.push({ x: col, y: row, imageIndex: tile, type: TileType[tile as keyof typeof TileType] });
@@ -80,7 +90,7 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
       setTiles(newTiles);
     })();
     
-  }, []);
+  }, [cities]);
 
   const startDrag = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     event.preventDefault();

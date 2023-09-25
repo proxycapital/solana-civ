@@ -187,6 +187,18 @@ div.unit img {
   position: relative;
 }
 
+.game-tile img.terrain.village {
+  z-index: 1;
+  width: 135%;
+  top: -15px;
+  left: -15px;
+}
+
+.game-tile img.terrain.village:hover {
+  cursor: pointer;
+  filter: drop-shadow(-1px 2px 0 white) drop-shadow(2px -1px 0 rgba(255,255,255,.7)) drop-shadow(-2px -1px 0 rgba(255,255,255,.7)) drop-shadow(1px 1.5px 10px rgba(255,255,255,.5));
+}
+
 .top-menu {
   display: flex;
   justify-content: space-between;

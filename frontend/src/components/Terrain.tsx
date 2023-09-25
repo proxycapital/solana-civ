@@ -41,7 +41,7 @@ const Terrain: React.FC<TerrainProps> = ({ x, y, imageIndex, isInRange, debug })
   return (
     <div>
       { imageIndex !== null && (
-        <img src={imageUrl} className="terrain" alt={tileType} draggable="false" />
+        <img src={imageUrl} className={`terrain ${tileType.toLowerCase()}`} alt={tileType} draggable="false" />
       )}
       {debug && <DebugCoordinates x={x} y={y} />}
     </div>
