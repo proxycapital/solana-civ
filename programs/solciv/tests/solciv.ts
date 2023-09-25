@@ -5,7 +5,6 @@ import { expect } from "chai";
 
 describe("solciv", () => {
 
-  // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
@@ -53,5 +52,51 @@ describe("solciv", () => {
 
     const account = await program.account.player.fetch(playerKey);
     console.log(account);
+  });
+
+  it("Move unit", async () => {
+    const accounts = {
+      playerAccount: playerKey,
+      player: provider.publicKey,
+    };
+    const unitId = 0;
+    const x = 1;
+    const y = 1;
+    await program.methods.moveUnit(unitId, x, y).accounts(accounts).rpc();
+    const account = await program.account.player.fetch(playerKey);
+    expect(account.units[unitId].x).equal(x);
+    expect(account.units[unitId].y).equal(y);
+  });
+
+  it("Should fail to move unit", async () => {
+    const accounts = {
+      playerAccount: playerKey,
+      player: provider.publicKey,
+    };
+    // Cannot move out of 20x20 map bounds
+    try {
+      await program.methods.moveUnit(0, 1, 100).accounts(accounts).rpc();
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("OutOfMapBounds");
+    }
+    // Cannot move farther than moving_range
+    try {
+      await program.methods.moveUnit(0, 1, 10).accounts(accounts).rpc();
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("CannotMove");
+    }
+  });
+
+  it("End 1st turn", async () => {
+    const accounts = {
+      game: gameKey,
+      playerAccount: playerKey,
+      player: provider.publicKey,
+    };
+    await program.methods.endTurn().accounts(accounts).rpc();
+    const account = await program.account.game.fetch(gameKey);
+    expect(account.turn).equal(2);
   });
 });
