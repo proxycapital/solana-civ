@@ -13,6 +13,13 @@ body.light-mode {
   height: 100vh;
 }
 
+.error-container {
+  margin: 15px 0;
+  font-size: 14px;
+  max-width: 600px;
+  line-height: 22px;
+}
+
 .center-grid {
   min-height: 100vh;
   margin-top: -100px;
@@ -188,7 +195,7 @@ div.unit img {
 
 .tile-coordinate {
   position: relative;
-  margin-top: -20px;
+  margin-top: -113px;
   color: white;
   font-size: 12px;
   background-color: rgba(0, 0, 0, 0.5);

@@ -1,10 +1,12 @@
 import React, { useRef, useEffect, useState } from 'react';
+import * as anchor from "@coral-xyz/anchor";
 import Terrain, { TileType } from './Terrain';
 import Unit from './Unit';
 import UnitInfoWindow from './UnitInfoWindow';
 import VillageModal from './VillageModal';
 import { useGameState } from '../context/GameStateContext';
-import { initializeGame, getMap } from '../utils/solanaUtils';
+import { useWorkspace } from '../context/AnchorContext';
+import { getMap } from '../utils/solanaUtils';
 import "../App.css";
 
 interface GameMapProps {
@@ -17,15 +19,30 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
   const cols = 20;
   const isDragging = useRef(false);
   const [showVillageModal, setShowVillageModal] = useState(false);
-  const { updateBalances } = useGameState();
+  const { fetchPlayerState, updateUnits, allUnits } = useGameState();
+  const { program, provider } = useWorkspace();
 
   const [tiles, setTiles] = useState([
     { x: 1, y: 1, imageIndex: 0, type: 'Village' },
   ]);
-  const [units, setUnits] = useState([
-    { x: 3, y: 3, type: 'worker', isSelected: false, movementRange: 3 },
-    { x: 4, y: 3, type: 'warrior', isSelected: false, movementRange: 2 },
-  ]);
+  const [units, setUnits] = useState<Unit[]>(allUnits);
+
+  interface Unit {
+    unitId: number;
+    x: number;
+    y: number;
+    type: string;
+    isSelected: boolean;
+    movementRange: number;
+  }
+
+
+  /*
+    [
+      { x: 3, y: 3, type: 'worker', isSelected: false, movementRange: 3 },
+      { x: 4, y: 3, type: 'warrior', isSelected: false, movementRange: 2 },
+    ]
+  */
   const constructionOptions = [
     { title: 'Barracks', description: 'Produces warriors', cost: 100, image: '/barracks.png' },
     // { title: 'Farm', description: 'Increases food production', cost: 50, image: 'https://place-hold.it/100x100' },
@@ -35,18 +52,22 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
   ];
   const containerRef = useRef<HTMLDivElement | null>(null);
   let dragStart = { x: 0, y: 0 };
+
+  useEffect(() => {
+    const updatedUnits = allUnits.map(unit => ({ ...unit, isSelected: false, type: Object.keys(unit.unitType)[0] }));
+    setUnits(updatedUnits);
+  }, [allUnits]);
   
   useEffect(() => {
-    // @todo: add better handling for this. Temp backup if initialization failed in HomePage
-    initializeGame().catch(error => console.error('Failed to initialize game', error));
+    // // @todo: add better handling for this. Temp backup if initialization failed in HomePage
+    // initializeGame().catch(error => console.error('Failed to initialize game', error));
 
-    updateBalances();
     (async () => {
-      const map = await getMap();
+      // map
+      const map = await getMap(provider, program);
       if (!map) {
         return;
       }
-      console.log(map);
       let newTiles = [];
     
       for (let row = 0; row < 20; row++) {
@@ -97,7 +118,8 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
   };
 
   const isWithinDistance = (x1: number, y1: number, x2: number, y2: number, distance: number) => {
-    const withinDistance = Math.abs(x1 - x2) <= distance && Math.abs(y1 - y2) <= distance;
+    // const withinDistance = Math.abs(x1 - x2) <= distance && Math.abs(y1 - y2) <= distance;
+    const withinDistance = (Math.abs(x1 - x2) + Math.abs(y1 - y2)) <= distance;
     const targetTile = tiles.find(t => t.x === x2 && t.y === y2);
     const blockedTileTypes = ['Village', 'Mountains'];
     if (targetTile && blockedTileTypes.includes(targetTile.type)) {
@@ -105,22 +127,34 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
     }
     return withinDistance;
   };
-  
 
-  const selectOrMoveUnit = (x: number, y: number, type: string) => {
+  const selectOrMoveUnit = async (x: number, y: number, type: string) => {
     const selectedUnit = units.find((unit) => unit.isSelected);
     const isTileOccupied = units.some(unit => unit.x === x && unit.y === y);
 
     if (selectedUnit && !isTileOccupied && isWithinDistance(selectedUnit.x, selectedUnit.y, x, y, selectedUnit.movementRange)) {
       console.log('Condition 1: Moving unit');
-      const newUnits = units.map(unit => {
-        if (unit.isSelected) {
-          return { ...unit, x, y, isSelected: false };
-        }
-        return unit;
-      });
-      logMessage(`Unit ${type} moved to (${x}, ${y})`);
-      setUnits(newUnits);
+      const [gameKey] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("GAME"), provider!.publicKey.toBuffer()],
+        program!.programId
+      );
+      const [playerKey] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("PLAYER"), gameKey.toBuffer(), provider!.publicKey.toBuffer()],
+        program!.programId
+      );
+      const accounts = {
+        playerAccount: playerKey,
+        player: provider!.publicKey,
+      };
+      try {
+        const tx = await program!.methods.moveUnit(selectedUnit.unitId, x, y).accounts(accounts).rpc();
+        console.log(`Move unit TX: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
+        logMessage(`Unit #${selectedUnit.unitId} ${type} moved to (${x}, ${y})`);
+      } catch (error) {
+        console.error('Failed to move unit', error);
+      }
+      await fetchPlayerState();
+
     } else {
       console.log('Condition 2: Selecting unit');
       const newUnits = units.map(unit => {

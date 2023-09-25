@@ -3,16 +3,19 @@ import Container from "@mui/material/Container";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
 import { useNavigate } from "react-router-dom";
-import { Connection, Keypair, LAMPORTS_PER_SOL, clusterApiUrl } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import bs58 from "bs58";
+import { useWorkspace } from "../context/AnchorContext";
 import { initializeGame } from '../utils/solanaUtils';
+import * as anchor from "@coral-xyz/anchor";
+import { Program } from "@coral-xyz/anchor";
 import "../App.css";
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const workspace = useWorkspace();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [initializationSteps, setInitializationSteps] = useState([
-    { name: "Creating wallet", status: "pending" },
     { name: "Requesting airdrop", status: "pending" },
     { name: "Initializing game", status: "pending" },
   ]);
@@ -31,59 +34,49 @@ const HomePage: React.FC = () => {
 
   const createWalletAndStartGame = async () => {
 
-    /* if user has a wallet in local storage, use that wallet */
-    const existingWalletPublicKey = localStorage.getItem("solanaWalletPublicKey");
-    const existingWalletSecretKey = localStorage.getItem("solanaWalletSecretKey");
-    if (existingWalletPublicKey && existingWalletSecretKey && localStorage.getItem("gameInitialized")) {
-      navigate("/game");
-      return;
-    }
-
     setShowButtons(false);
-    const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
-    let wallet;
+    const connection = workspace.connection as Connection;
+    const wallet = {
+      publicKey: workspace.provider?.publicKey as PublicKey,
+    };
 
     try {
-      updateStepStatus("Creating wallet", "in-progress");
-      wallet = Keypair.generate();
-      updateStepStatus("Creating wallet", "completed");
-    } catch (error) {
-      console.log("Error while creating wallet: ", error);
-      updateStepStatus("Creating wallet", "failed");
-      setErrorMsg(`Creating wallet failed: ${error}`);
-      return;
-    }
+      // get sol balance
+      const balance = await connection.getBalance(wallet.publicKey);
+      console.log("Balance: ", balance)
+      if (balance > 0.1 * LAMPORTS_PER_SOL) {
+        updateStepStatus("Requesting airdrop", "completed");
+      } else {
+        const airdropSignature = await connection.requestAirdrop(wallet.publicKey, 1 * LAMPORTS_PER_SOL);
 
-    try {
-      updateStepStatus("Requesting airdrop", "in-progress");
-      const airdropSignature = await connection.requestAirdrop(wallet.publicKey, 1 * LAMPORTS_PER_SOL);
-
-      const latestBlockHash = await connection.getLatestBlockhash();
-
-      await connection.confirmTransaction({
-        blockhash: latestBlockHash.blockhash,
-        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-        signature: airdropSignature,
-      });
-      localStorage.setItem("solanaWalletPublicKey", wallet.publicKey.toString());
-      localStorage.setItem("solanaWalletSecretKey", bs58.encode(wallet.secretKey));
-      updateStepStatus("Requesting airdrop", "completed");
+        const latestBlockHash = await connection.getLatestBlockhash();
+  
+        await connection.confirmTransaction({
+          blockhash: latestBlockHash.blockhash,
+          lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+          signature: airdropSignature,
+        });
+        updateStepStatus("Requesting airdrop", "completed");
+      }
     } catch (error) {
       console.log("Error while requesting airdrop: ", error);
       updateStepStatus("Requesting airdrop", "failed");
       setErrorMsg(`Requesting airdrop failed: ${error}`);
+      setShowButtons(true);
       return;
     }
 
     try {
-      updateStepStatus("Initializing game", "in-progress");
-      await initializeGame();
-      localStorage.setItem("gameInitialized", "true");
+      // @todo: add better checks for workspace/provider/program
+      const provider = workspace.provider!;
+      const program = workspace.program!;
+      await initializeGame(provider, program);
       updateStepStatus("Initializing game", "completed");
     } catch (error) {
       console.log("Error while initializing the game: ", error);
       updateStepStatus("Initializing game", "failed");
       setErrorMsg(`Initializing game failed: ${error}`);
+      setShowButtons(true);
       return;
     }
 
@@ -122,7 +115,6 @@ const HomePage: React.FC = () => {
               <pre>
                 {step.status === "completed" && "✅ "}
                 {step.status === "failed" && "❌ "}
-                {step.status === "in-progress" && "🕒 "}
                 {step.status === "pending" && "⏳ "}
                 {step.name}
               </pre>

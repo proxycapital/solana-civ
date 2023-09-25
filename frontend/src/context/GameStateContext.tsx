@@ -1,19 +1,28 @@
-import React, { createContext, useContext, useState } from "react";
-import { fetchBalances } from '../utils/solanaUtils';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useWorkspace } from '../context/AnchorContext';
+import { getPlayer, getGame } from '../utils/solanaUtils';
 
-
-// @todo: move this to a environment.ts or other single point hook
-const { REACT_APP_RPC: RPC, REACT_APP_PROGRAM_ID: PROGRAM_ADDRESS } = process.env;
-if (!PROGRAM_ADDRESS) {
-  throw new Error("REACT_APP_PROGRAM_ID is undefined. Hint: `cp .env.sample .env`");
+type Game = {
+  turn: number,
+  map: number[],
 }
 
+type Resources = {
+  gold: number;
+  food: number;
+  wood: number;
+  stone: number;
+  iron: number;
+  sol: number;
+};
+
 interface GameStateContextType {
-  updateBalances: () => Promise<void>;
-  gold: number | null;
-  food: number | null;
-  lumber: number | null;
-  sol: number | null;
+  fetchPlayerState: () => Promise<void>;
+  fetchGameState: () => Promise<void>;
+  updateUnits: (updatedUnits: any[]) => void;
+  game: Game,
+  resources: Resources,
+  allUnits: any[];
 }
 
 interface BaseLayoutProps {
@@ -31,28 +40,49 @@ export const useGameState = () => {
 };
 
 export const GameStateProvider: React.FC<BaseLayoutProps> = ({ children }) => {
-  const [gold, setGold] = useState(0);
-  const [food, setFood] = useState(0);
-  const [lumber, setLumber] = useState(0);
-  const [sol, setSol] = useState(0);
+  const { program, provider } = useWorkspace();
+  const [resources, setResources] = useState({} as Resources);
+  const [game, setGame] = useState({turn: 1, map: []} as Game);
+  const [allUnits, setUnits] = useState([] as any[]);
 
-  const updateBalances = async () => {
+  const updateUnits = (updatedUnits: any[]) => setUnits(updatedUnits);
+
+  const fetchGameState = async () => {
     try {
-      const balance = await fetchBalances();
-      if (balance) {
-        setSol(balance.sol);
-        setGold(balance.gold);
-        setFood(balance.food);
-        setLumber(balance.lumber);
+      const game = await getGame(provider, program);
+      if (game) {
+        setGame(game);
       }
+    } catch (error) {
+      console.error('Failed to fetch game state', error);
+    }
+  };
+
+  const fetchPlayerState = async () => {
+    try {
+      const player = await getPlayer(provider, program);
+      console.log('[GameStateProvider] fetchPlayerState()', player);
+      if (player && player.balances) {
+        // setSol(player.balances.sol);
+        setResources(player.balances);
+      }
+      if (player && player.units) {
+        setUnits(player.units);
+      }
+      // @todo: check also day/turn
     } catch (error) {
       console.error('Failed to fetch balance', error);
       // @todo: alert for player ?
     }
   };
 
+  useEffect(() => {
+    fetchGameState();
+    fetchPlayerState();
+  }, []);
+
   return (
-    <GameStateContext.Provider value={{ updateBalances, gold, food, lumber, sol }}>
+    <GameStateContext.Provider value={{ fetchPlayerState, fetchGameState, updateUnits, game, resources, allUnits }}>
       {children}
     </GameStateContext.Provider>
   );

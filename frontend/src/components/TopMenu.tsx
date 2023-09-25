@@ -2,8 +2,8 @@ import React from "react";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
 import Switch from "@mui/material/Switch";
+import EndTurnButton from "./EndTurnButton";
 import { useGameState } from '../context/GameStateContext';
 
 interface TopMenuProps {
@@ -12,7 +12,7 @@ interface TopMenuProps {
 }
 
 const TopMenu: React.FC<TopMenuProps> = ({ debug, setDebug }) => {
-  const { gold, food, lumber, sol } = useGameState();
+  const { resources, game } = useGameState();
 
   return (
     <div style={{ display: "flex", justifyContent: "space-between", margin: "20px" }}>
@@ -26,19 +26,19 @@ const TopMenu: React.FC<TopMenuProps> = ({ debug, setDebug }) => {
           <div className="balance-container">
             <div className="balance-box">
               <img src="/icons/gold.png" width="32" alt="Gold" />
-              {gold}
+              {resources.gold}
             </div>
             <div className="balance-box">
               <img src="/icons/food.png" width="32" alt="Food" />
-              {food}
+              {resources.food}
             </div>
             <div className="balance-box">
               <img src="/icons/lumber.png" width="32" alt="Lumber" />
-              {lumber}
+              {resources.wood}
             </div>
             <div className="balance-box">
               <img src="/icons/solana.png" width="32" alt="SOL" />
-              {sol}
+              {resources.sol}
             </div>
           </div>
         </Toolbar>
@@ -63,11 +63,9 @@ const TopMenu: React.FC<TopMenuProps> = ({ debug, setDebug }) => {
               inputProps={{ "aria-label": "Debug mode" }}
             />
             <Typography variant="h6" style={{ display: "inline", marginRight: "20px" }}>
-              Day 1
+              Day {game.turn}
             </Typography>
-            <Button variant="contained" color="secondary" className="end-turn-button">
-              ⌛ End Turn
-            </Button>
+            <EndTurnButton />
           </div>
         </Toolbar>
       </AppBar>

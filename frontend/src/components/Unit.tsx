@@ -7,11 +7,6 @@ interface UnitProps {
 }
 
 const Unit: React.FC<UnitProps> = ({ x, y, type, isSelected, onClick }) => {
-  const imageMap = {
-    worker: 'builder.png',
-    warrior: 'warrior.png',
-    archer: 'archer.png',
-  };
 
   const handleClick = () => {
     onClick(x, y);
@@ -19,7 +14,7 @@ const Unit: React.FC<UnitProps> = ({ x, y, type, isSelected, onClick }) => {
 
   return (
     <div className={`unit ${isSelected ? 'selected' : ''}`} onClick={handleClick}>
-      <img src={`/${imageMap[type as keyof typeof imageMap]}`} alt={type} />
+      <img src={`/${type}.png`} alt={type} />
     </div>
   );
 };
