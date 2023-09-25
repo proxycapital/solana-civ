@@ -76,7 +76,7 @@ export type Solciv = {
       "args": [
         {
           "name": "unitId",
-          "type": "u8"
+          "type": "u32"
         },
         {
           "name": "x",
@@ -85,6 +85,45 @@ export type Solciv = {
         {
           "name": "y",
           "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "foundCity",
+      "accounts": [
+        {
+          "name": "game",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "playerAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "player",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "x",
+          "type": "u8"
+        },
+        {
+          "name": "y",
+          "type": "u8"
+        },
+        {
+          "name": "unitId",
+          "type": "u32"
         }
       ]
     },
@@ -151,7 +190,15 @@ export type Solciv = {
           },
           {
             "name": "points",
-            "type": "u64"
+            "type": "u32"
+          },
+          {
+            "name": "cities",
+            "type": {
+              "vec": {
+                "defined": "City"
+              }
+            }
           },
           {
             "name": "units",
@@ -166,6 +213,14 @@ export type Solciv = {
             "type": {
               "defined": "Resources"
             }
+          },
+          {
+            "name": "nextCityId",
+            "type": "u32"
+          },
+          {
+            "name": "nextUnitId",
+            "type": "u32"
           }
         ]
       }
@@ -173,13 +228,77 @@ export type Solciv = {
   ],
   "types": [
     {
+      "name": "City",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cityId",
+            "type": "u32"
+          },
+          {
+            "name": "player",
+            "type": "publicKey"
+          },
+          {
+            "name": "game",
+            "type": "publicKey"
+          },
+          {
+            "name": "x",
+            "type": "u8"
+          },
+          {
+            "name": "y",
+            "type": "u8"
+          },
+          {
+            "name": "health",
+            "type": "u32"
+          },
+          {
+            "name": "defence",
+            "type": "u32"
+          },
+          {
+            "name": "population",
+            "type": "u32"
+          },
+          {
+            "name": "goldYield",
+            "type": "u32"
+          },
+          {
+            "name": "foodYield",
+            "type": "u32"
+          },
+          {
+            "name": "productionYield",
+            "type": "u32"
+          },
+          {
+            "name": "scienceYield",
+            "type": "u32"
+          },
+          {
+            "name": "buildings",
+            "type": {
+              "vec": {
+                "defined": "BuildingType"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "Unit",
       "type": {
         "kind": "struct",
         "fields": [
           {
             "name": "unitId",
-            "type": "u8"
+            "type": "u32"
           },
           {
             "name": "player",
@@ -255,6 +374,43 @@ export type Solciv = {
       }
     },
     {
+      "name": "BuildingError",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "TileOccupied"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BuildingType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Barracks"
+          },
+          {
+            "name": "Wall"
+          },
+          {
+            "name": "Market"
+          },
+          {
+            "name": "Library"
+          },
+          {
+            "name": "School"
+          },
+          {
+            "name": "University"
+          }
+        ]
+      }
+    },
+    {
       "name": "UnitType",
       "type": {
         "kind": "enum",
@@ -303,6 +459,16 @@ export type Solciv = {
       "code": 6004,
       "name": "TileOccupied",
       "msg": "Tile is occupied by another unit"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidUnitType",
+      "msg": "The provided unit cannot perform this action"
+    },
+    {
+      "code": 6006,
+      "name": "UnitWrongPosition",
+      "msg": "The provided unit is not at the required coordinates"
     }
   ],
   "metadata": {
@@ -388,7 +554,7 @@ export const IDL: Solciv = {
       "args": [
         {
           "name": "unitId",
-          "type": "u8"
+          "type": "u32"
         },
         {
           "name": "x",
@@ -397,6 +563,45 @@ export const IDL: Solciv = {
         {
           "name": "y",
           "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "foundCity",
+      "accounts": [
+        {
+          "name": "game",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "playerAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "player",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "x",
+          "type": "u8"
+        },
+        {
+          "name": "y",
+          "type": "u8"
+        },
+        {
+          "name": "unitId",
+          "type": "u32"
         }
       ]
     },
@@ -463,7 +668,15 @@ export const IDL: Solciv = {
           },
           {
             "name": "points",
-            "type": "u64"
+            "type": "u32"
+          },
+          {
+            "name": "cities",
+            "type": {
+              "vec": {
+                "defined": "City"
+              }
+            }
           },
           {
             "name": "units",
@@ -478,6 +691,14 @@ export const IDL: Solciv = {
             "type": {
               "defined": "Resources"
             }
+          },
+          {
+            "name": "nextCityId",
+            "type": "u32"
+          },
+          {
+            "name": "nextUnitId",
+            "type": "u32"
           }
         ]
       }
@@ -485,13 +706,77 @@ export const IDL: Solciv = {
   ],
   "types": [
     {
+      "name": "City",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cityId",
+            "type": "u32"
+          },
+          {
+            "name": "player",
+            "type": "publicKey"
+          },
+          {
+            "name": "game",
+            "type": "publicKey"
+          },
+          {
+            "name": "x",
+            "type": "u8"
+          },
+          {
+            "name": "y",
+            "type": "u8"
+          },
+          {
+            "name": "health",
+            "type": "u32"
+          },
+          {
+            "name": "defence",
+            "type": "u32"
+          },
+          {
+            "name": "population",
+            "type": "u32"
+          },
+          {
+            "name": "goldYield",
+            "type": "u32"
+          },
+          {
+            "name": "foodYield",
+            "type": "u32"
+          },
+          {
+            "name": "productionYield",
+            "type": "u32"
+          },
+          {
+            "name": "scienceYield",
+            "type": "u32"
+          },
+          {
+            "name": "buildings",
+            "type": {
+              "vec": {
+                "defined": "BuildingType"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "Unit",
       "type": {
         "kind": "struct",
         "fields": [
           {
             "name": "unitId",
-            "type": "u8"
+            "type": "u32"
           },
           {
             "name": "player",
@@ -567,6 +852,43 @@ export const IDL: Solciv = {
       }
     },
     {
+      "name": "BuildingError",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "TileOccupied"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BuildingType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Barracks"
+          },
+          {
+            "name": "Wall"
+          },
+          {
+            "name": "Market"
+          },
+          {
+            "name": "Library"
+          },
+          {
+            "name": "School"
+          },
+          {
+            "name": "University"
+          }
+        ]
+      }
+    },
+    {
       "name": "UnitType",
       "type": {
         "kind": "enum",
@@ -615,6 +937,16 @@ export const IDL: Solciv = {
       "code": 6004,
       "name": "TileOccupied",
       "msg": "Tile is occupied by another unit"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidUnitType",
+      "msg": "The provided unit cannot perform this action"
+    },
+    {
+      "code": 6006,
+      "name": "UnitWrongPosition",
+      "msg": "The provided unit is not at the required coordinates"
     }
   ],
   "metadata": {

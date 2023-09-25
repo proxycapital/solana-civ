@@ -61,7 +61,7 @@ const HomePage: React.FC = () => {
     } catch (error) {
       console.log("Error while requesting airdrop: ", error);
       updateStepStatus("Requesting airdrop", "failed");
-      setErrorMsg(`Requesting airdrop failed: ${error}`);
+      setErrorMsg(`Send devnet SOL to your in-game address and try again: ${wallet.publicKey.toBase58()}. Airdrop request failed: ${error}`);
       setShowButtons(true);
       return;
     }
