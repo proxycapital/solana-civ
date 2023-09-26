@@ -97,14 +97,6 @@ describe("solciv", () => {
     const playerAccount = await program.account.player.fetch(playerKey);
     const unitId = playerAccount.units.findIndex(unit => Object.keys(unit.unitType)[0] === "settler");
     const unit = playerAccount.units[unitId];
-
-    // const buff = Buffer.allocUnsafe(4);
-    // buff.writeUInt32LE(playerAccount.nextCityId, 0);
-    // const [cityKey] = anchor.web3.PublicKey.findProgramAddressSync(
-    //   [Buffer.from("CITY"), gameKey.toBuffer(), provider.publicKey.toBuffer(), buff],
-    //   program.programId
-    // );
-    // console.log("City account address", cityKey.toString());
     
     const accounts = {
       game: gameKey,
@@ -189,7 +181,7 @@ describe("solciv", () => {
     const y = 2;
     const unit_id = 1; // builder created in initializePlayer
     try {
-      const tx = await program.methods.upgradeTile(x, y, unit_id).accounts(accounts).rpc();
+      await program.methods.upgradeTile(x, y, unit_id).accounts(accounts).rpc();
     } catch (e) {
       const { message } = e;
       expect(message).include("UnitNotFound.");
@@ -210,5 +202,6 @@ describe("solciv", () => {
     expect(account.turn).equal(2);
     const playerAccount = await program.account.player.fetch(playerKey);
     expect(playerAccount.resources.gold).greaterThan(prevPlayerAccount.resources.gold);
+    expect(playerAccount.resources.wood).eq(2); // we have upgraded forest tile to TimberCamp
   });
 });

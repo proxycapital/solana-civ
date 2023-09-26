@@ -27,7 +27,7 @@ pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
   ctx.accounts.player_account.resources = Resources {
       gold: 0,
       food: 10,
-      wood: 5,
+      wood: 0,
       stone: 0,
       iron: 0,
   };
@@ -174,26 +174,27 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
           unit.movement_range = 2;
       }
   }
-  /*
   
-      // Adjust player's resources based on tile type.
-    match tile_type {
-        TileType::TimberCamp => ctx.accounts.player_account.resources.wood += 1,
-        TileType::StoneQuarry => ctx.accounts.player_account.resources.stone += 1,
-        TileType::CornField => ctx.accounts.player_account.resources.food += 1,
-        // ... other cases
-    }
-  
-   */
   let mut gold = 0;
   let mut food = 0;
+  let mut wood = 0;
+  let mut stone = 0;
   for city in &mut ctx.accounts.player_account.cities {
       gold += city.gold_yield;
       food += city.food_yield;
   }
+  for tile in &mut ctx.accounts.player_account.tiles {
+      match tile.tile_type {
+          TileType::TimberCamp => wood += 2,
+          TileType::StoneQuarry => stone += 2,
+          TileType::CornField => food += 2,
+      }
+  }
 
-  ctx.accounts.player_account.resources.gold = ctx.accounts.player_account.resources.gold.checked_add(gold).unwrap();
-  ctx.accounts.player_account.resources.food = ctx.accounts.player_account.resources.food.checked_add(food).unwrap();
+ctx.accounts.player_account.resources.gold = ctx.accounts.player_account.resources.gold.checked_add(gold).unwrap();
+ctx.accounts.player_account.resources.food = ctx.accounts.player_account.resources.food.checked_add(food).unwrap();
+ctx.accounts.player_account.resources.wood = ctx.accounts.player_account.resources.wood.checked_add(wood).unwrap();
+ctx.accounts.player_account.resources.stone = ctx.accounts.player_account.resources.stone.checked_add(stone).unwrap();
 
   // units.retain(|unit| unit.is_alive);
   ctx.accounts.game.turn += 1;
@@ -249,14 +250,6 @@ pub struct FoundCity<'info> {
     pub game: Account<'info, Game>,
     #[account(mut)]
     pub player_account: Account<'info, Player>,
-    // #[account(
-    //     init, 
-    //     payer = player, 
-    //     seeds=[b"CITY", game.key().as_ref(), player.key().as_ref(), player_account.next_city_id.to_le_bytes().as_ref()], 
-    //     bump, 
-    //     space = std::mem::size_of::<City>() + 8
-    // )]
-    // pub city: Account<'info, City>,
     #[account(mut)]
     pub player: Signer<'info>,
     pub system_program: Program<'info, System>,
