@@ -1,9 +1,9 @@
-mod state;
-mod instructions;
 mod errors;
+mod instructions;
+mod state;
 
-use anchor_lang::prelude::*;
 use crate::instructions::*;
+use anchor_lang::prelude::*;
 
 declare_id!("GoiXQMoEhhLM8MSbfUFhHz4punJqXNHEQh6ysegmuHJz");
 
@@ -19,12 +19,7 @@ pub mod solciv {
         instructions::initialize_player(ctx)
     }
 
-    pub fn move_unit(
-        ctx: Context<MoveUnit>,
-        unit_id: u32,
-        x: u8,
-        y: u8,
-    ) -> Result<()> {
+    pub fn move_unit(ctx: Context<MoveUnit>, unit_id: u32, x: u8, y: u8) -> Result<()> {
         instructions::move_unit(ctx, unit_id, x, y)
     }
 

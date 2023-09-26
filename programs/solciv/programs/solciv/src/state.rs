@@ -81,64 +81,70 @@ pub enum UnitType {
 }
 
 impl City {
-  pub fn new(city_id: u32, player: Pubkey, game: Pubkey, x: u8, y: u8) -> Self {
-      Self {
-          city_id,
-          player,
-          game,
-          x,
-          y,
-          health: 100,
-          defence: 0,
-          population: 1,
-          gold_yield: 2,
-          food_yield: 2,
-          production_yield: 2,
-          science_yield: 1,
-          buildings: vec![],
-      }
-  }
+    pub fn new(city_id: u32, player: Pubkey, game: Pubkey, x: u8, y: u8) -> Self {
+        Self {
+            city_id,
+            player,
+            game,
+            x,
+            y,
+            health: 100,
+            defence: 0,
+            population: 1,
+            gold_yield: 2,
+            food_yield: 2,
+            production_yield: 2,
+            science_yield: 1,
+            buildings: vec![],
+        }
+    }
 }
 
-
 impl Unit {
-  pub fn new(unit_id: u32, player: Pubkey, game: Pubkey, unit_type: UnitType, x: u8, y: u8) -> Self {
-      let (health, attack, movement_range, remaining_actions) = Self::get_base_stats(unit_type);
-      
-      Self {
-          unit_id,
-          player,
-          game,
-          unit_type,
-          x,
-          y,
-          attack,
-          health,
-          movement_range,
-          remaining_actions,
-          is_alive: true,
-      }
-  }
+    pub fn new(
+        unit_id: u32,
+        player: Pubkey,
+        game: Pubkey,
+        unit_type: UnitType,
+        x: u8,
+        y: u8,
+    ) -> Self {
+        let (health, attack, movement_range, remaining_actions) = Self::get_base_stats(unit_type);
 
-  /// Returns the base stats of a given `UnitType`.
-  /// 
-  /// ### Arguments
-  /// 
-  /// * `unit_type` - A `UnitType` enum variant representing the type of unit.
-  /// 
-  /// ### Returns
-  /// 
-  /// A tuple containing four `u8` values representing the base stats of the unit in the following order:
-  /// `(health, attack, movement_range, remaining_actions)`.
-  fn get_base_stats(unit_type: UnitType) -> (u8, u8, u8, u8) {
-      match unit_type {
-          UnitType::Settler => (100, 0, 2, 1),
-          UnitType::Builder => (100, 0, 2, 1),
-          UnitType::Warrior => (100, 20, 2, 0),
-          UnitType::Archer => (100, 30, 2, 0),
-          UnitType::Swordsman => (100, 50, 2, 0),
-      }
-  }
+        Self {
+            unit_id,
+            player,
+            game,
+            unit_type,
+            x,
+            y,
+            attack,
+            health,
+            movement_range,
+            remaining_actions,
+            is_alive: true,
+        }
+    }
+
+    /// Returns the base stats of a given `UnitType`.
+    ///
+    /// ### Arguments
+    ///
+    /// * `unit_type` - A `UnitType` enum variant representing the type of unit.
+    ///
+    /// ### Returns
+    ///
+    /// A tuple containing four `u8` values representing the base stats of the unit in the following order:
+    /// `(health, attack, movement_range, remaining_actions)`.
+    fn get_base_stats(unit_type: UnitType) -> (u8, u8, u8, u8) {
+        match unit_type {
+            UnitType::Settler => (100, 0, 2, 1),
+            UnitType::Builder => (100, 0, 2, 1),
+            UnitType::Warrior => (100, 20, 2, 0),
+            UnitType::Archer => (100, 30, 2, 0),
+            UnitType::Swordsman => (100, 50, 2, 0),
+        }
+    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -157,10 +163,6 @@ pub enum TileType {
 
 impl Tile {
     pub fn new(tile_type: TileType, x: u8, y: u8) -> Self {
-        Self {
-            tile_type,
-            x,
-            y,
-        }
+        Self { tile_type, x, y }
     }
 }
