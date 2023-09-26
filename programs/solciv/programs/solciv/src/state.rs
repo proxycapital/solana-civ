@@ -13,6 +13,7 @@ pub struct Player {
     pub player: Pubkey,
     pub points: u32,
     pub cities: Vec<City>,
+    pub tiles: Vec<Tile>,
     pub units: Vec<Unit>,
     pub resources: Resources,
     pub next_city_id: u32,
@@ -138,4 +139,28 @@ impl Unit {
           UnitType::Swordsman => (100, 50, 2, 0),
       }
   }
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct Tile {
+    pub tile_type: TileType,
+    pub x: u8,
+    pub y: u8,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq)]
+pub enum TileType {
+    TimberCamp,
+    StoneQuarry,
+    CornField,
+}
+
+impl Tile {
+    pub fn new(tile_type: TileType, x: u8, y: u8) -> Self {
+        Self {
+            tile_type,
+            x,
+            y,
+        }
+    }
 }

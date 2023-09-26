@@ -29,3 +29,12 @@ pub enum BuildingError {
   #[msg("Tile is occupied by another construction")]
   TileOccupied,
 }
+
+#[error_code]
+pub enum TileError {
+  #[msg("Tile is not upgradeable")]
+  NotUpgradeable,
+
+  #[msg("Tile is occupied by another construction")]
+  TileOccupied,
+}

@@ -32,6 +32,10 @@ pub mod solciv {
         instructions::found_city(ctx, x, y, unit_id)
     }
 
+    pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Result<()> {
+        instructions::upgrade_tile(ctx, x, y, unit_id)
+    }
+
     pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
         instructions::end_turn(ctx)
     }

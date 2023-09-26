@@ -5,6 +5,7 @@ use crate::errors::*;
 const MAX_UNITS: u8 = 20;
 const MAX_CITIES: u8 = 20;
 const MAX_BUILDINGS: u8 = 20;
+const MAX_UPGRADED_TILES: u8 = 100;
 
 pub fn initialize_game(ctx: Context<InitializeGame>, map: [u8; 400]) -> Result<()> {
   ctx.accounts.game.player = ctx.accounts.player.key().clone();
@@ -89,7 +90,7 @@ pub fn move_unit(
 }
 
 pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32) -> Result<()> {
-  // 1. Validate if the unit with `unit_id` is a settler and is at `x` and `y`.
+  // Validate if the unit with `unit_id` is a settler and is at `x` and `y`.
   let unit_idx = ctx.accounts.player_account.units.iter().position(|u| u.unit_id == unit_id).ok_or(UnitError::UnitNotFound)?;
   let unit = &ctx.accounts.player_account.units[unit_idx];
   if unit.unit_type != UnitType::Settler {
@@ -99,25 +100,71 @@ pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32) -> Result
       return err!(UnitError::UnitWrongPosition);
   }
   
-  // 2. Check if there is already a city at `x` and `y`.
+  // Check if there is already a city at `x` and `y`.
   let is_occupied = ctx.accounts.player_account.cities.iter().any(|city| city.x == x && city.y == y);
   if is_occupied {
       return err!(BuildingError::TileOccupied);
   }
 
-  // 3. Initialize the new City.
+  // Initialize the new City.
   let new_city = City::new(ctx.accounts.player_account.next_city_id, ctx.accounts.player_account.player, ctx.accounts.game.key(), x, y);
   ctx.accounts.player_account.cities.push(new_city);
   
-  // 4. Remove the settler unit used to found the city.
+  // Remove the settler unit used to found the city.
   ctx.accounts.player_account.units.remove(unit_idx);
   
-  // 5. Update the next_city_id in the player account.
+  // Update the next_city_id in the player account.
   ctx.accounts.player_account.next_city_id = ctx.accounts.player_account.next_city_id.checked_add(1).unwrap();
   
   msg!("Founded new city!");
   
   Ok(())
+}
+
+pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Result<()> {
+    // Validate if the unit with `unit_id` is a Builder and is at `x` and `y`.
+    let unit_idx = ctx.accounts.player_account.units.iter().position(|u| u.unit_id == unit_id).ok_or(UnitError::UnitNotFound)?;
+    let unit = &ctx.accounts.player_account.units[unit_idx];
+    if unit.unit_type != UnitType::Builder {
+        return err!(UnitError::InvalidUnitType);
+    }
+    if (unit.x, unit.y) != (x, y) {
+        return err!(UnitError::UnitWrongPosition);
+    }
+
+    // Check if the tile type is upgradeable and the tile is not occupied by a City or another Tile.
+    let map_idx = (y as usize) * 20 + x as usize;
+    match ctx.accounts.game.map[map_idx] {
+        2 | 5 | 6 => {}, // allowable tile types
+        _ => return err!(TileError::NotUpgradeable),
+    }
+    
+    if ctx.accounts.player_account.cities.iter().any(|city| city.x == x && city.y == y) 
+        || ctx.accounts.player_account.tiles.iter().any(|tile| tile.x == x && tile.y == y) {
+        return err!(TileError::TileOccupied);
+    }
+    
+    // Initialize the new Tile and push it to player_account tiles vector.
+    let tile_type = match ctx.accounts.game.map[map_idx] {
+        2 => TileType::TimberCamp,
+        5 => TileType::StoneQuarry,
+        6 => TileType::CornField,
+        // we've already checked the tile type above, if there was no match, we would have returned an error NotUpgradeable
+        _ => unreachable!(), 
+    };
+    
+    let new_tile = Tile::new(tile_type, x, y);
+    ctx.accounts.player_account.tiles.push(new_tile);
+    
+    // Reduce remaining_actions of the Builder and remove it if remaining_actions hit 0.
+    ctx.accounts.player_account.units[unit_idx].remaining_actions -= 1;
+    if ctx.accounts.player_account.units[unit_idx].remaining_actions == 0 {
+        ctx.accounts.player_account.units.remove(unit_idx);
+    }
+    
+    msg!("Tile upgraded!");
+    
+    Ok(())
 }
 
 pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
@@ -127,6 +174,17 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
           unit.movement_range = 2;
       }
   }
+  /*
+  
+      // Adjust player's resources based on tile type.
+    match tile_type {
+        TileType::TimberCamp => ctx.accounts.player_account.resources.wood += 1,
+        TileType::StoneQuarry => ctx.accounts.player_account.resources.stone += 1,
+        TileType::CornField => ctx.accounts.player_account.resources.food += 1,
+        // ... other cases
+    }
+  
+   */
   let mut gold = 0;
   let mut food = 0;
   for city in &mut ctx.accounts.player_account.cities {
@@ -174,6 +232,7 @@ pub struct InitializePlayer<'info> {
         space = std::mem::size_of::<Player>() +
             std::mem::size_of::<Unit>() * MAX_UNITS as usize +
             std::mem::size_of::<City>() * MAX_CITIES as usize +
+            std::mem::size_of::<Tile>() * MAX_UPGRADED_TILES as usize +
             std::mem::size_of::<BuildingType>() * MAX_BUILDINGS as usize +
             std::mem::size_of::<Resources>() + 8)
     ]
@@ -205,6 +264,16 @@ pub struct FoundCity<'info> {
 
 #[derive(Accounts)]
 pub struct MoveUnit<'info> {
+    #[account(mut)]
+    pub player_account: Account<'info, Player>,
+    #[account(mut)]
+    pub player: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct UpgradeTile<'info> {
+    #[account(mut)]
+    pub game: Account<'info, Game>,
     #[account(mut)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]

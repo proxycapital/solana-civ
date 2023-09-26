@@ -14,17 +14,22 @@ describe("solciv", () => {
     [Buffer.from("GAME"), provider.publicKey.toBuffer()],
     program.programId
   );
-  console.log("Game account address", gameKey.toString());
+  // console.log("Game account address", gameKey.toString());
 
   const [playerKey] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("PLAYER"), gameKey.toBuffer(), provider.publicKey.toBuffer()],
     program.programId
   );
-  console.log("Player account address", playerKey.toString());
+  // console.log("Player account address", playerKey.toString());
 
   it("Initialize game", async () => {
     // generate random 20x20 map with tile types from 1 to 9
     const randomMap = Array.from({length: 400}, () => Math.floor(Math.random() * 9) + 1);
+
+    // this is needed for the future test of upgrading tiles
+    // Builder is initialized at (3, 2) coordinates
+    // "2" value is the forest tile type that can be upgraded to TimberCamp
+    randomMap[3 + 2 * 20] = 2;
 
     const accounts = {
       game: gameKey,
@@ -32,8 +37,6 @@ describe("solciv", () => {
       systemProgram: anchor.web3.SystemProgram.programId,
     };
     const tx = await program.methods.initializeGame(randomMap).accounts(accounts).rpc();
-    console.log("Transaction signature", tx);
-
     const account = await program.account.game.fetch(gameKey);
 
     expect(account.player.toBase58()).equal(provider.publicKey.toBase58());
@@ -48,8 +51,6 @@ describe("solciv", () => {
       systemProgram: anchor.web3.SystemProgram.programId,
     };
     const tx = await program.methods.initializePlayer().accounts(accounts).rpc();
-    console.log("Transaction signature", tx);
-
     const account = await program.account.player.fetch(playerKey);
 
     expect(account.units.length).equal(3);
@@ -121,11 +122,80 @@ describe("solciv", () => {
 
     const account = await program.account.player.fetch(playerKey);
     const city = account.cities[0];
-    console.log(city);
     expect(account.player.toBase58()).equal(provider.publicKey.toBase58());
     expect(city.x).equal(unit.x);
     expect(city.y).equal(unit.y);
     expect(city.cityId).equal(0);
+  });
+
+  it("Should not upgrade land tile using Warrior", async () => {
+    const accounts = {
+      game: gameKey,
+      player: provider.publicKey,
+      playerAccount: playerKey,
+    };
+    const x = 3;
+    const y = 2;
+    const unit_id = 2; // warrior created in initializePlayer
+    try {
+      const tx = await program.methods.upgradeTile(x, y, unit_id).accounts(accounts).rpc();
+      console.log("Transaction signature", tx);
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("InvalidUnitType");
+    }
+  });
+
+  it("Should not upgrade land tile if the coords do not match current unit position", async () => {
+    const accounts = {
+      game: gameKey,
+      player: provider.publicKey,
+      playerAccount: playerKey,
+    };
+    const x = 3;
+    const y = 3;
+    const unit_id = 1; // warrior created in initializePlayer
+    try {
+      const tx = await program.methods.upgradeTile(x, y, unit_id).accounts(accounts).rpc();
+      console.log("Transaction signature", tx);
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("UnitWrongPosition");
+    }
+  });
+
+  it("Upgrade land tile", async () => {
+    const accounts = {
+      game: gameKey,
+      player: provider.publicKey,
+      playerAccount: playerKey,
+    };
+    const x = 3;
+    const y = 2;
+    const unit_id = 1; // builder created in initializePlayer
+    const tx = await program.methods.upgradeTile(x, y, unit_id).accounts(accounts).rpc();
+
+    const account = await program.account.player.fetch(playerKey);
+    expect(account.tiles).deep.equal([{tileType: {timberCamp: {}}, x, y}]);
+  });
+
+  it("Should not upgrade land tile with a Builder that was already consumed", async () => {
+    const accounts = {
+      game: gameKey,
+      player: provider.publicKey,
+      playerAccount: playerKey,
+    };
+    const x = 3;
+    const y = 2;
+    const unit_id = 1; // builder created in initializePlayer
+    try {
+      const tx = await program.methods.upgradeTile(x, y, unit_id).accounts(accounts).rpc();
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("UnitNotFound.");
+    }
+
+    const account = await program.account.player.fetch(playerKey);
   });
 
   it("End 1st turn", async () => {
