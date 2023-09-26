@@ -19,19 +19,19 @@ export function weightedRandomTile() {
 }
 
 // Mapping of tile indices to their type
-// Only "Village" is used for now to display the village modal.
 export const TileType = {
   0: "Empty",
   1: "Plains",
-  2: "Plains",
+  2: "Forest",
   3: "Plains",
   4: "Plains",
-  5: "Plains",
-  6: "Plains",
+  5: "Rocks",
+  6: "Field",
   7: "Plains",
   8: "Plains",
   9: "Plains",
   10: "Village",
+  11: "upgraded-tile",
 };
 
 const Terrain: React.FC<TerrainProps> = ({ x, y, imageIndex, isInRange, debug }) => {

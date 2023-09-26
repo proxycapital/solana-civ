@@ -26,7 +26,7 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
   const cols = 20;
   const isDragging = useRef(false);
   const [showVillageModal, setShowVillageModal] = useState(false);
-  const { fetchPlayerState, cities, allUnits } = useGameState();
+  const { fetchPlayerState, cities, upgradedTiles, allUnits } = useGameState();
   const { program, provider } = useWorkspace();
 
   const [tiles, setTiles] = useState([] as Tile[]);
@@ -69,6 +69,11 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
       cities.forEach(city => {
         cityCoordinates.add(`${city.x},${city.y}`);
       });
+      // extract coordinates of all upgraded saving also tileType
+      const upgradedCoordinates = new Set();
+      upgradedTiles.forEach(tile => {
+        upgradedCoordinates.add(`${tile.x},${tile.y},${Object.keys(tile.tileType)[0]}`);
+      });
     
       for (let row = 0; row < 20; row++) {
         for (let col = 0; col < 20; col++) {
@@ -78,6 +83,12 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
             newTiles.push({ x: col, y: row, imageIndex: 10, type: 'Village' });
             continue;
           }
+          // if there is an upgraded tile at this coordinate, render it
+          if (upgradedCoordinates.has(`${col},${row},stoneQuarry`)) {
+            newTiles.push({ x: col, y: row, imageIndex: 11, type: 'StoneQuarry' });
+            continue;
+          }
+
           const tile = map[index];
           if (tile) {
             newTiles.push({ x: col, y: row, imageIndex: tile, type: TileType[tile as keyof typeof TileType] });
@@ -86,11 +97,10 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
           }
         }
       }
-      
       setTiles(newTiles);
     })();
     
-  }, [cities]);
+  }, [cities, upgradedTiles]);
 
   const startDrag = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     event.preventDefault();
@@ -205,9 +215,19 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
           const row = Math.floor(index / cols);
           const col = index % cols;
           /* render the tile or default Plains */
-          const currentTile = tiles.find(t => t.x === col && t.y === row) || { imageIndex: 0, type: 'Plains', x: col, y: row };
+          const currentTile = tiles.find(t => t.x === col && t.y === row) || { imageIndex: 0, type: 'Empty', x: col, y: row };
           const currentUnit = units.find(u => u.x === col && u.y === row);
           const isInRangeForAnyUnit = units.some(u => isInRange(u, col, row));
+
+          // @todo: refactor this to be more generic
+          let resourceAvailable;
+          if (currentTile.type === 'Forest') {
+            resourceAvailable = 'lumber';
+          } else if (currentTile.type === 'Field') {
+            resourceAvailable = 'food';
+          } else if (currentTile.type === 'Rocks') {
+            resourceAvailable = 'stone';
+          }
 
           return (
             <div 
@@ -224,6 +244,7 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
             }}
             >
               <Terrain x={col} y={row} imageIndex={currentTile.imageIndex} isInRange={isInRangeForAnyUnit} debug={debug} />
+              {selectedUnit && selectedUnit.type === 'builder' && resourceAvailable && <div className="land-plot-resource"><img src={`/icons/${resourceAvailable}.png`} alt="" /></div>}
               {currentUnit && <Unit {...currentUnit} onClick={() => selectOrMoveUnit(col, row, currentUnit.type)} />}
             </div>
           );

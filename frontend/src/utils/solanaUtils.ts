@@ -82,6 +82,7 @@ export const getPlayer = async (provider: AnchorProvider | undefined, program: P
   const balances = playerAccount ? playerAccount.resources : {};
   const units = playerAccount? playerAccount.units : [];
   const cities = playerAccount? playerAccount.cities : [];
+  const tiles = playerAccount? playerAccount.tiles : [];
 
   try {
     const balance = await connection.getBalance(provider.publicKey);
@@ -89,7 +90,7 @@ export const getPlayer = async (provider: AnchorProvider | undefined, program: P
   } catch (error) {
     console.error("Failed to fetch balance", error);
   }
-  return { balances, units, cities };
+  return { balances, units, cities, tiles };
 };
 
 export const initializeGame = async (provider: AnchorProvider, program: Program<Solciv>) => {
@@ -180,6 +181,32 @@ export const foundCity = async (provider: AnchorProvider, program: Program<Solci
     console.log(`Found a city TX: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
   } catch (error) {
     console.log("Error while founding city: ", error);
+    return error;
+  }
+  return true;
+};
+
+export const upgradeLandPlot = async (provider: AnchorProvider, program: Program<Solciv>, unit: any) => {
+  const [gameKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("GAME"), provider.publicKey.toBuffer()],
+    program.programId
+  );
+
+  const [playerKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("PLAYER"), gameKey.toBuffer(), provider.publicKey.toBuffer()],
+    program.programId
+  );
+  
+  const accounts = {
+    game: gameKey,
+    player: provider.publicKey,
+    playerAccount: playerKey,
+  };
+  try {
+    const tx = await program.methods.upgradeTile(unit.x, unit.y, unit.unitId).accounts(accounts).rpc();
+    console.log(`Upgrade land plot TX: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
+  } catch (error) {
+    console.log("Error while upgrading land: ", error);
     return error;
   }
   return true;

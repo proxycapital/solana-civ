@@ -126,6 +126,28 @@ div.unit img {
   border-radius: 45px;
 }
 
+.land-plot-resource {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 52%;
+  width: 32px;
+  height: 32px;
+  margin: 0 auto;
+  transform: translate(-50%, -50%);
+  /* opacity: 0.7; */
+  filter: grayscale(1);
+}
+
+img.upgraded-tile {
+  z-index: 1;
+  border: 1px solid #fff;
+  border-radius: 90px;
+  width: 125% !important;
+  left: -10px;
+  top: -8px;
+}
+
 .unit-info-window {
   position: absolute;
   bottom: 10px;
