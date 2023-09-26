@@ -1,5 +1,5 @@
 import React from 'react';
-import { foundCity } from '../utils/solanaUtils';
+import { foundCity, upgradeLandPlot } from '../utils/solanaUtils';
 import { useWorkspace } from '../context/AnchorContext';
 import { useGameState } from '../context/GameStateContext';
 
@@ -27,10 +27,11 @@ const UnitInfoWindow: React.FC<UnitInfoProps> = ({unit}) => {
     await fetchPlayerState();
   }
 
-  const handleBuild = () => {
-    // if(onBuild) onBuild(x, y, unitId);
+  const handleBuild = async (x: number, y: number, unitId: number) => {
+    const unit = { x, y, unitId };
+    await upgradeLandPlot(provider!, program!, unit);
+    await fetchPlayerState();
   }
-
   return (
     <div className="unit-info-window">
       <img src={`/${type}.png`} alt={type} />
@@ -40,7 +41,7 @@ const UnitInfoWindow: React.FC<UnitInfoProps> = ({unit}) => {
       {builds !== undefined && <div>Builds: {builds}/1</div>}
       {strength !== undefined && <div>Strength: {strength}</div>}
       {type === "settler" && <button className="unit-action-button" onClick={() => handleFoundCity(unit.x, unit.y, unit.unitId)}>Found a City</button>}
-      {type === "builder" && <button className="unit-action-button" onClick={handleBuild}>Build</button>}
+      {type === "builder" && <button className="unit-action-button" onClick={() => handleBuild(unit.x, unit.y, unit.unitId)}>Build</button>}
     </div>
   );
 };

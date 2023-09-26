@@ -128,6 +128,40 @@ export type Solciv = {
       ]
     },
     {
+      "name": "upgradeTile",
+      "accounts": [
+        {
+          "name": "game",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "playerAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "player",
+          "isMut": true,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "x",
+          "type": "u8"
+        },
+        {
+          "name": "y",
+          "type": "u8"
+        },
+        {
+          "name": "unitId",
+          "type": "u32"
+        }
+      ]
+    },
+    {
       "name": "endTurn",
       "accounts": [
         {
@@ -201,6 +235,14 @@ export type Solciv = {
             }
           },
           {
+            "name": "tiles",
+            "type": {
+              "vec": {
+                "defined": "Tile"
+              }
+            }
+          },
+          {
             "name": "units",
             "type": {
               "vec": {
@@ -227,6 +269,34 @@ export type Solciv = {
     }
   ],
   "types": [
+    {
+      "name": "Resources",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "gold",
+            "type": "u32"
+          },
+          {
+            "name": "food",
+            "type": "u32"
+          },
+          {
+            "name": "wood",
+            "type": "u32"
+          },
+          {
+            "name": "stone",
+            "type": "u32"
+          },
+          {
+            "name": "iron",
+            "type": "u32"
+          }
+        ]
+      }
+    },
     {
       "name": "City",
       "type": {
@@ -346,29 +416,23 @@ export type Solciv = {
       }
     },
     {
-      "name": "Resources",
+      "name": "Tile",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "gold",
-            "type": "u32"
+            "name": "tileType",
+            "type": {
+              "defined": "TileType"
+            }
           },
           {
-            "name": "food",
-            "type": "u32"
+            "name": "x",
+            "type": "u8"
           },
           {
-            "name": "wood",
-            "type": "u32"
-          },
-          {
-            "name": "stone",
-            "type": "u32"
-          },
-          {
-            "name": "iron",
-            "type": "u32"
+            "name": "y",
+            "type": "u8"
           }
         ]
       }
@@ -378,6 +442,20 @@ export type Solciv = {
       "type": {
         "kind": "enum",
         "variants": [
+          {
+            "name": "TileOccupied"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TileError",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "NotUpgradeable"
+          },
           {
             "name": "TileOccupied"
           }
@@ -429,6 +507,23 @@ export type Solciv = {
           },
           {
             "name": "Swordsman"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TileType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "TimberCamp"
+          },
+          {
+            "name": "StoneQuarry"
+          },
+          {
+            "name": "CornField"
           }
         ]
       }
@@ -606,6 +701,40 @@ export const IDL: Solciv = {
       ]
     },
     {
+      "name": "upgradeTile",
+      "accounts": [
+        {
+          "name": "game",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "playerAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "player",
+          "isMut": true,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "x",
+          "type": "u8"
+        },
+        {
+          "name": "y",
+          "type": "u8"
+        },
+        {
+          "name": "unitId",
+          "type": "u32"
+        }
+      ]
+    },
+    {
       "name": "endTurn",
       "accounts": [
         {
@@ -679,6 +808,14 @@ export const IDL: Solciv = {
             }
           },
           {
+            "name": "tiles",
+            "type": {
+              "vec": {
+                "defined": "Tile"
+              }
+            }
+          },
+          {
             "name": "units",
             "type": {
               "vec": {
@@ -705,6 +842,34 @@ export const IDL: Solciv = {
     }
   ],
   "types": [
+    {
+      "name": "Resources",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "gold",
+            "type": "u32"
+          },
+          {
+            "name": "food",
+            "type": "u32"
+          },
+          {
+            "name": "wood",
+            "type": "u32"
+          },
+          {
+            "name": "stone",
+            "type": "u32"
+          },
+          {
+            "name": "iron",
+            "type": "u32"
+          }
+        ]
+      }
+    },
     {
       "name": "City",
       "type": {
@@ -824,29 +989,23 @@ export const IDL: Solciv = {
       }
     },
     {
-      "name": "Resources",
+      "name": "Tile",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "gold",
-            "type": "u32"
+            "name": "tileType",
+            "type": {
+              "defined": "TileType"
+            }
           },
           {
-            "name": "food",
-            "type": "u32"
+            "name": "x",
+            "type": "u8"
           },
           {
-            "name": "wood",
-            "type": "u32"
-          },
-          {
-            "name": "stone",
-            "type": "u32"
-          },
-          {
-            "name": "iron",
-            "type": "u32"
+            "name": "y",
+            "type": "u8"
           }
         ]
       }
@@ -856,6 +1015,20 @@ export const IDL: Solciv = {
       "type": {
         "kind": "enum",
         "variants": [
+          {
+            "name": "TileOccupied"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TileError",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "NotUpgradeable"
+          },
           {
             "name": "TileOccupied"
           }
@@ -907,6 +1080,23 @@ export const IDL: Solciv = {
           },
           {
             "name": "Swordsman"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TileType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "TimberCamp"
+          },
+          {
+            "name": "StoneQuarry"
+          },
+          {
+            "name": "CornField"
           }
         ]
       }
