@@ -64,6 +64,47 @@ pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
     Ok(())
 }
 
+pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
+    ctx.accounts.npc_account.game = ctx.accounts.game.key().clone();
+    ctx.accounts.npc_account.player = ctx.accounts.player.key().clone();
+    ctx.accounts.npc_account.next_city_id = 0;
+    ctx.accounts.npc_account.next_unit_id = 0;
+    ctx.accounts.game.npc = ctx.accounts.npc_account.key().clone();
+
+    // Initialize units for the NPC.
+    ctx.accounts.npc_account.units = vec![
+        Unit::new(
+            0,
+            ctx.accounts.npc_account.key().clone(),
+            ctx.accounts.game.key().clone(),
+            UnitType::Warrior,
+            0,
+            0,
+        ),
+        Unit::new(
+            1,
+            ctx.accounts.npc_account.key().clone(),
+            ctx.accounts.game.key().clone(),
+            UnitType::Warrior,
+            0,
+            1,
+        ),
+        Unit::new(
+            2,
+            ctx.accounts.npc_account.key().clone(),
+            ctx.accounts.game.key().clone(),
+            UnitType::Warrior,
+            3,
+            4,
+        ),
+    ];
+    ctx.accounts.npc_account.next_unit_id = 3;
+
+    msg!("NPC created!");
+
+    Ok(())
+}
+
 // #[access_control(MoveUnit::validate_unit_move(&ctx, unit_id, x, y))]
 pub fn move_unit(ctx: Context<MoveUnit>, unit_id: u32, x: u8, y: u8) -> Result<()> {
     let unit = ctx
@@ -85,6 +126,7 @@ pub fn move_unit(ctx: Context<MoveUnit>, unit_id: u32, x: u8, y: u8) -> Result<(
     }
 
     // Check if the new position is within the movement_range
+    // Manhattan Distance:
     let dist = ((unit.x as i16 - x as i16).abs() + (unit.y as i16 - y as i16).abs()) as u8;
     msg!("Initial position: ({}, {})", unit.x, unit.y);
     msg!("New position: ({}, {})", x, y);
@@ -237,6 +279,45 @@ pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Re
     Ok(())
 }
 
+pub fn attack_unit(ctx: Context<AttackUnit>, attacker_id: u32, defender_id: u32) -> Result<()> {
+    let attacker = ctx
+        .accounts
+        .player_account
+        .units
+        .iter_mut()
+        .find(|u| u.unit_id == attacker_id)
+        .ok_or(UnitError::UnitNotFound)?;
+    let defender = ctx
+        .accounts
+        .npc_account
+        .units
+        .iter_mut()
+        .find(|u| u.unit_id == defender_id)
+        .ok_or(UnitError::UnitNotFound)?;
+
+    if attacker.movement_range == 0 {
+        return err!(UnitError::NoMovementPoints);
+    }
+
+    // Check proximity (attacker should be 1 tile away from defender)
+    // Chebyshev Distance:
+    let dist_x = (attacker.x as i16 - defender.x as i16).abs();
+    let dist_y = (attacker.y as i16 - defender.y as i16).abs();
+    let dist = std::cmp::max(dist_x, dist_y) as u8;
+
+    if dist != 1 {
+        return err!(UnitError::OutOfAttackRange);
+    }
+
+    attacker.perform_attack(defender)?;
+
+    // Retain only alive units in the game
+    ctx.accounts.player_account.units.retain(|u| u.is_alive);
+    ctx.accounts.npc_account.units.retain(|u| u.is_alive);
+
+    Ok(())
+}
+
 pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
     // Iterate over all units of the player and reset the movement_range to 2
     for unit in &mut ctx.accounts.player_account.units.iter_mut() {
@@ -290,8 +371,102 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
         .checked_add(stone)
         .unwrap();
 
-    // units.retain(|unit| unit.is_alive);
+    // NPC MOVEMENTS AND ATTACKS //
+    // Iterate over each NPC unit and make a decision to move or attack
+    for npc_unit in &mut ctx.accounts.npc_account.units {
+        if !npc_unit.is_alive {
+            continue;
+        }
+
+        let mut min_dist = u16::MAX;
+        // x, y coordinates of the closest player's unit or city.
+        let mut closest_target: Option<(u8, u8)> = None;
+
+        // Find the closest player's unit or city to the NPC unit
+        for player_unit in &ctx.accounts.player_account.units {
+            if !player_unit.is_alive {
+                continue;
+            }
+            // @todo: this is supposed to be Euclidean distance,
+            // but for simplicity we use squared distance instead of the actual distance
+            let dist = ((npc_unit.x as i16 - player_unit.x as i16).pow(2)
+                + (npc_unit.y as i16 - player_unit.y as i16).pow(2)) as u16;
+            if dist < min_dist {
+                min_dist = dist;
+                closest_target = Some((player_unit.x, player_unit.y));
+            }
+        }
+
+        for city in &ctx.accounts.player_account.cities {
+            let dist = ((npc_unit.x as i16 - city.x as i16).pow(2)
+                + (npc_unit.y as i16 - city.y as i16).pow(2)) as u16;
+            if dist < min_dist {
+                min_dist = dist;
+                closest_target = Some((city.x, city.y));
+            }
+        }
+
+        // If a closest target was found, make decisions for NPC units based on the proximity to this target
+        if let Some((target_x, target_y)) = closest_target {
+            // Check if the attack is possible using Chebyshev distance.
+            let dist_x = (npc_unit.x as i16 - target_x as i16).abs();
+            let dist_y = (npc_unit.y as i16 - target_y as i16).abs();
+            let dist = std::cmp::max(dist_x, dist_y) as u8;
+            if dist == 1 {
+                // Find the player's unit at target_x, target_y and perform attack.
+                if let Some(player_unit) = ctx
+                    .accounts
+                    .player_account
+                    .units
+                    .iter_mut()
+                    .find(|u| u.x == target_x && u.y == target_y)
+                {
+                    npc_unit.perform_attack(player_unit)?;
+                }
+            } else {
+                // Compute the direction in which to move.
+                let dir_x = if npc_unit.x < target_x {
+                    1
+                } else if npc_unit.x > target_x {
+                    -1
+                } else {
+                    0
+                };
+                let dir_y = if npc_unit.y < target_y {
+                    1
+                } else if npc_unit.y > target_y {
+                    -1
+                } else {
+                    0
+                };
+
+                // Compute the new position.
+                let new_x = (npc_unit.x as i16 + dir_x) as u8;
+                let new_y = (npc_unit.y as i16 + dir_y) as u8;
+
+                // Check if the new position is within map bounds and is not occupied by another unit or city.
+                if new_x < 20 && new_y < 20
+                    && !ctx.accounts.player_account.units.iter().any(|u| u.x == new_x && u.y == new_y && u.is_alive)
+                    // @todo: this is a bug. Fix me
+                    // && !ctx.accounts.npc_account.units.iter().any(|u| u.x == new_x && u.y == new_y && u.is_alive)
+                    && !ctx.accounts.player_account.cities.iter().any(|c| c.x == new_x && c.y == new_y)
+                {
+                    npc_unit.x = new_x;
+                    npc_unit.y = new_y;
+                }
+            }
+        }
+    }
+
+    // Retain only alive units in the game
+    ctx.accounts.player_account.units.retain(|u| u.is_alive);
+    ctx.accounts.npc_account.units.retain(|u| u.is_alive);
+
     ctx.accounts.game.turn += 1;
+    Ok(())
+}
+
+pub fn close_game(_ctx: Context<Close>) -> Result<()> {
     Ok(())
 }
 
@@ -305,7 +480,6 @@ pub struct InitializeGame<'info> {
         space = std::mem::size_of::<Game>() + 8
     )]
     pub game: Account<'info, Game>,
-
     #[account(mut)]
     pub player: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -332,6 +506,29 @@ pub struct InitializePlayer<'info> {
             std::mem::size_of::<Resources>() + 8)
     ]
     pub player_account: Box<Account<'info, Player>>,
+
+    #[account(mut)]
+    pub player: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct InitializeNpc<'info> {
+    pub game: Account<'info, Game>,
+
+    #[account(
+        init,
+        seeds=[
+            b"NPC",
+            game.key().as_ref(),
+        ],
+        bump,
+        payer = player,
+        space = std::mem::size_of::<Npc>() +
+            std::mem::size_of::<Unit>() * MAX_UNITS as usize +
+            std::mem::size_of::<City>() * MAX_CITIES as usize + 8)
+    ]
+    pub npc_account: Box<Account<'info, Npc>>,
 
     #[account(mut)]
     pub player: Signer<'info>,
@@ -368,11 +565,37 @@ pub struct UpgradeTile<'info> {
 }
 
 #[derive(Accounts)]
+pub struct AttackUnit<'info> {
+    #[account(mut)]
+    pub game: Account<'info, Game>,
+    #[account(mut)]
+    pub player_account: Account<'info, Player>,
+    #[account(mut)]
+    pub npc_account: Account<'info, Npc>,
+    #[account(mut)]
+    pub player: Signer<'info>,
+}
+
+#[derive(Accounts)]
 pub struct EndTurn<'info> {
     #[account(mut)]
     pub game: Account<'info, Game>,
     #[account(mut)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]
+    pub npc_account: Account<'info, Npc>,
+    #[account(mut)]
     pub player: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct Close<'info> {
+    #[account(mut, close = player, has_one = player)]
+    game: Account<'info, Game>,
+    #[account(mut, close = player, has_one = player)]
+    player_account: Account<'info, Player>,
+    #[account(mut, close = player, has_one = player)]
+    npc_account: Account<'info, Npc>,
+    #[account(mut)]
+    player: Signer<'info>,
 }

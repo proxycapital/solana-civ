@@ -26,7 +26,7 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
   const cols = 20;
   const isDragging = useRef(false);
   const [showVillageModal, setShowVillageModal] = useState(false);
-  const { fetchPlayerState, cities, upgradedTiles, allUnits } = useGameState();
+  const { fetchPlayerState, fetchNpcs, cities, upgradedTiles, npcUnits, allUnits } = useGameState();
   const { program, provider } = useWorkspace();
 
   const [tiles, setTiles] = useState([] as Tile[]);
@@ -34,6 +34,8 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
 
   interface Unit {
     unitId: number;
+    npc?: boolean;
+    health: number;
     x: number;
     y: number;
     type: string;
@@ -53,8 +55,19 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
 
   useEffect(() => {
     const updatedUnits = allUnits.map(unit => ({ ...unit, isSelected: false, type: Object.keys(unit.unitType)[0] }));
+    // add also npcUnits with flag npc=true
+    npcUnits.forEach(unit => {
+      updatedUnits.push({ ...unit, isSelected: false, type: Object.keys(unit.unitType)[0], npc: true });
+    });
     setUnits(updatedUnits);
-  }, [allUnits]);
+  }, [allUnits, npcUnits]);
+
+  useEffect(() => {
+    (async () => {
+      await fetchPlayerState();
+      await fetchNpcs();
+    })();
+  }, []);
   
   useEffect(() => {
 
@@ -172,7 +185,7 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
     } else {
       console.log('Condition 2: Selecting unit');
       const newUnits = units.map(unit => {
-        if (unit.x === x && unit.y === y && unit.type === type) {
+        if (unit.x === x && unit.y === y && unit.type === type && !unit.npc) {
           return { ...unit, isSelected: !unit.isSelected };
         } else {
           return { ...unit, isSelected: false };

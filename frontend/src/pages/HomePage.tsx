@@ -44,7 +44,7 @@ const HomePage: React.FC = () => {
       // get sol balance
       const balance = await connection.getBalance(wallet.publicKey);
       console.log("Balance: ", balance)
-      if (balance > 0.1 * LAMPORTS_PER_SOL) {
+      if (balance >= 0.1 * LAMPORTS_PER_SOL) {
         updateStepStatus("Requesting airdrop", "completed");
       } else {
         const airdropSignature = await connection.requestAirdrop(wallet.publicKey, 1 * LAMPORTS_PER_SOL);

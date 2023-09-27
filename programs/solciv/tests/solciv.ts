@@ -4,7 +4,6 @@ import { Solciv } from "../target/types/solciv";
 import { expect } from "chai";
 
 describe("solciv", () => {
-
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
@@ -14,17 +13,20 @@ describe("solciv", () => {
     [Buffer.from("GAME"), provider.publicKey.toBuffer()],
     program.programId
   );
-  // console.log("Game account address", gameKey.toString());
 
   const [playerKey] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("PLAYER"), gameKey.toBuffer(), provider.publicKey.toBuffer()],
     program.programId
   );
-  // console.log("Player account address", playerKey.toString());
+
+  const [npcKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("NPC"), gameKey.toBuffer()],
+    program.programId
+  );
 
   it("Initialize game", async () => {
     // generate random 20x20 map with tile types from 1 to 9
-    const randomMap = Array.from({length: 400}, () => Math.floor(Math.random() * 9) + 1);
+    const randomMap = Array.from({ length: 400 }, () => Math.floor(Math.random() * 9) + 1);
 
     // this is needed for the future test of upgrading tiles
     // Builder is initialized at (3, 2) coordinates
@@ -55,6 +57,37 @@ describe("solciv", () => {
 
     expect(account.units.length).equal(3);
     expect(account.nextUnitId).equal(3);
+  });
+
+  it("Initialize NPC with units and cities", async () => {
+    const accounts = {
+      game: gameKey,
+      npcAccount: npcKey,
+      player: provider.publicKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    };
+    const tx = await program.methods.initializeNpc().accounts(accounts).rpc();
+    const account = await program.account.npc.fetch(npcKey);
+
+    expect(account.units.length).equal(3);
+    expect(account.cities.length).equal(0);
+    expect(account.nextUnitId).equal(3);
+  });
+
+  it("Should attack barbarian", async () => {
+    const accounts = {
+      game: gameKey,
+      playerAccount: playerKey,
+      npcAccount: npcKey,
+      player: provider.publicKey,
+    };
+    const unitId = 2;
+    const barbarianId = 2;
+    const tx = await program.methods.attackUnit(unitId, barbarianId).accounts(accounts).rpc();
+    const account = await program.account.npc.fetch(npcKey);
+    const playerData = await program.account.player.fetch(playerKey);
+    expect(account.units[barbarianId].health).lessThan(100);
+    expect(playerData.units[unitId].health).lessThan(100);
   });
 
   it("Move unit", async () => {
@@ -95,9 +128,9 @@ describe("solciv", () => {
   it("Found the city", async () => {
     // get player account and find unit of type "settler"
     const playerAccount = await program.account.player.fetch(playerKey);
-    const unitId = playerAccount.units.findIndex(unit => Object.keys(unit.unitType)[0] === "settler");
+    const unitId = playerAccount.units.findIndex((unit) => Object.keys(unit.unitType)[0] === "settler");
     const unit = playerAccount.units[unitId];
-    
+
     const accounts = {
       game: gameKey,
       player: provider.publicKey,
@@ -168,7 +201,7 @@ describe("solciv", () => {
     const tx = await program.methods.upgradeTile(x, y, unit_id).accounts(accounts).rpc();
 
     const account = await program.account.player.fetch(playerKey);
-    expect(account.tiles).deep.equal([{tileType: {timberCamp: {}}, x, y}]);
+    expect(account.tiles).deep.equal([{ tileType: { timberCamp: {} }, x, y }]);
   });
 
   it("Should not upgrade land tile with a Builder that was already consumed", async () => {
@@ -196,6 +229,7 @@ describe("solciv", () => {
       game: gameKey,
       playerAccount: playerKey,
       player: provider.publicKey,
+      npcAccount: npcKey,
     };
     await program.methods.endTurn().accounts(accounts).rpc();
     const account = await program.account.game.fetch(gameKey);
@@ -203,5 +237,41 @@ describe("solciv", () => {
     const playerAccount = await program.account.player.fetch(playerKey);
     expect(playerAccount.resources.gold).greaterThan(prevPlayerAccount.resources.gold);
     expect(playerAccount.resources.wood).eq(2); // we have upgraded forest tile to TimberCamp
+    const npcAccount = await program.account.npc.fetch(npcKey);
+  });
+
+  it("Should close game", async () => {
+    const accounts = {
+      game: gameKey,
+      npcAccount: npcKey,
+      playerAccount: playerKey,
+      player: provider.publicKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    };
+
+    const prevBalance = await provider.connection.getBalance(provider.publicKey);
+    await program.methods.closeGame().accounts(accounts).rpc();
+    const balance = await provider.connection.getBalance(provider.publicKey);
+    // verify that rent was returned
+    expect(balance).greaterThan(prevBalance);
+    // verify that all accounts were closed
+    try {
+      await program.account.game.fetch(gameKey);
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("Account does not exist or has no data");
+    }
+    try {
+      await program.account.player.fetch(playerKey);
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("Account does not exist or has no data");
+    }
+    try {
+      await program.account.npc.fetch(npcKey);
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("Account does not exist or has no data");
+    }
   });
 });

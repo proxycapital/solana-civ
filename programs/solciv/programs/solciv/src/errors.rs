@@ -22,6 +22,15 @@ pub enum UnitError {
 
     #[msg("The provided unit is not at the required coordinates")]
     UnitWrongPosition,
+
+    #[msg("The provided unit cannot attack")]
+    InvalidAttack,
+
+    #[msg("The provided unit is out of attack range")]
+    OutOfAttackRange,
+
+    #[msg("No movement points left this turn")]
+    NoMovementPoints,
 }
 
 #[error_code]

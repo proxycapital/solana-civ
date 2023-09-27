@@ -52,9 +52,9 @@ const TopMenu: React.FC<TopMenuProps> = ({ debug, setDebug }) => {
       >
         <Toolbar>
           <div style={{ marginLeft: "auto" }}>
-            <Typography variant="h6" style={{ display: "inline" }}>
+            {/* <Typography variant="h6" style={{ display: "inline" }}>
               Debug:
-            </Typography>
+            </Typography> */}
             <Switch
               checked={debug}
               onChange={() => setDebug(!debug)}
