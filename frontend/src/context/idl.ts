@@ -244,6 +244,32 @@ export type Solciv = {
         }
       ];
       args: [];
+    },
+    {
+      name: "closeGame";
+      accounts: [
+        {
+          name: "game";
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: "playerAccount";
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: "npcAccount";
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: "player";
+          isMut: true;
+          isSigner: true;
+        }
+      ];
+      args: [];
     }
   ];
   accounts: [
@@ -338,6 +364,10 @@ export type Solciv = {
         fields: [
           {
             name: "game";
+            type: "publicKey";
+          },
+          {
+            name: "player";
             type: "publicKey";
           },
           {
@@ -930,6 +960,32 @@ export const IDL: Solciv = {
       ],
       args: [],
     },
+    {
+      name: "closeGame",
+      accounts: [
+        {
+          name: "game",
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: "playerAccount",
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: "npcAccount",
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: "player",
+          isMut: true,
+          isSigner: true,
+        },
+      ],
+      args: [],
+    },
   ],
   accounts: [
     {
@@ -1023,6 +1079,10 @@ export const IDL: Solciv = {
         fields: [
           {
             name: "game",
+            type: "publicKey",
+          },
+          {
+            name: "player",
             type: "publicKey",
           },
           {

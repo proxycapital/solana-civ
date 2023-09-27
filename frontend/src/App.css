@@ -255,7 +255,10 @@ img.upgraded-tile {
 
 .end-turn-button {
   margin-left: auto;
-  margin-right: 15px;
+}
+
+.end-game-button {
+  margin-left: 10px !important;
 }
 
 .no-select {

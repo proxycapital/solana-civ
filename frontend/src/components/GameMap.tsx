@@ -61,6 +61,13 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
     });
     setUnits(updatedUnits);
   }, [allUnits, npcUnits]);
+
+  useEffect(() => {
+    (async () => {
+      await fetchPlayerState();
+      await fetchNpcs();
+    })();
+  }, []);
   
   useEffect(() => {
 
@@ -150,9 +157,6 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
 
   const selectOrMoveUnit = async (x: number, y: number, type: string) => {
     const selectedUnit = units.find((unit) => unit.isSelected);
-    if (selectedUnit && selectedUnit.npc === true) {
-      return;
-    }
     const isTileOccupied = units.some(unit => unit.x === x && unit.y === y);
 
     if (selectedUnit && !isTileOccupied && isWithinDistance(selectedUnit.x, selectedUnit.y, x, y, selectedUnit.movementRange)) {
@@ -181,7 +185,7 @@ const GameMap: React.FC<GameMapProps> = ({ debug, logMessage }) => {
     } else {
       console.log('Condition 2: Selecting unit');
       const newUnits = units.map(unit => {
-        if (unit.x === x && unit.y === y && unit.type === type) {
+        if (unit.x === x && unit.y === y && unit.type === type && !unit.npc) {
           return { ...unit, isSelected: !unit.isSelected };
         } else {
           return { ...unit, isSelected: false };
