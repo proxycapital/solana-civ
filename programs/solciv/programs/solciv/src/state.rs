@@ -1,8 +1,10 @@
+use crate::errors::*;
 use anchor_lang::prelude::*;
 
 #[account]
 pub struct Game {
     pub player: Pubkey,
+    pub npc: Pubkey,
     pub turn: u32,
     pub map: [u8; 400],
 }
@@ -16,6 +18,15 @@ pub struct Player {
     pub tiles: Vec<Tile>,
     pub units: Vec<Unit>,
     pub resources: Resources,
+    pub next_city_id: u32,
+    pub next_unit_id: u32,
+}
+
+#[account]
+pub struct Npc {
+    pub game: Pubkey,
+    pub cities: Vec<City>,
+    pub units: Vec<Unit>,
     pub next_city_id: u32,
     pub next_unit_id: u32,
 }
@@ -144,6 +155,70 @@ impl Unit {
             UnitType::Archer => (100, 30, 2, 0),
             UnitType::Swordsman => (100, 50, 2, 0),
         }
+    }
+
+    pub fn perform_attack(&mut self, defender: &mut Unit) -> Result<()> {
+        // Check if the attacker is alive and of attacking type
+        if !self.is_alive
+            || !matches!(
+                self.unit_type,
+                UnitType::Warrior | UnitType::Archer | UnitType::Swordsman
+            )
+        {
+            return err!(UnitError::InvalidAttack);
+        }
+
+        // Check if defender is of neutral type (Settler or Builder)
+        if matches!(defender.unit_type, UnitType::Settler | UnitType::Builder) {
+            defender.is_alive = false;
+            defender.health = 0;
+            msg!("Defender is dead");
+            // set movement range to 0 so that the attacker cannot move or attack anymore
+            self.movement_range = 0;
+            return Ok(());
+        }
+        // Calculate given damage and taken damage by a formula:
+        // damage = 30 * e^((difference between combat strengths) / 25) * random_factor
+        let e: f32 = std::f32::consts::E;
+        // get the unix timestamp modulo 10 to get a number in the range [0, 9]
+        let clock = Clock::get()?;
+        let random_factor = clock.unix_timestamp % 10;
+
+        // map this to a range of [0.9, ~1.1007]
+        let multiplier: f32 = 0.9 + ((random_factor as f32) * 0.0223);
+        // @todo: do we really need the multiplier for the taken damage?
+        let taken_damage_multiplier: f32 = 1.0 / multiplier;
+        let given_damage = (30.0
+            * e.powf((self.attack as f32 - defender.attack as f32) / 25.0)
+            * multiplier) as u8;
+        let taken_damage = (30.0
+            * e.powf((defender.attack as f32 - self.attack as f32) / 25.0)
+            * taken_damage_multiplier) as u8;
+        msg!("Given damage: {}", given_damage);
+        msg!("Taken damage: {}", taken_damage);
+        // Deduct defender's health by the given damage
+        if given_damage >= defender.health {
+            defender.is_alive = false;
+            defender.health = 0;
+            msg!("Defender is dead");
+        } else {
+            defender.health -= given_damage;
+            msg!("Defender HP after attack: {}", defender.health);
+        }
+
+        // Deduct attacker's health by the taken damage
+        if taken_damage >= self.health {
+            self.is_alive = false;
+            self.health = 0;
+            msg!("Attacker is dead");
+        } else {
+            self.health -= taken_damage;
+            msg!("Attacker HP after attack: {}", self.health);
+        }
+        // after the attack unit cannot move or attack anymore
+        self.movement_range = 0;
+
+        Ok(())
     }
 }
 

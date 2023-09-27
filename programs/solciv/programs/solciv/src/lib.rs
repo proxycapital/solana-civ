@@ -19,6 +19,10 @@ pub mod solciv {
         instructions::initialize_player(ctx)
     }
 
+    pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
+        instructions::initialize_npc(ctx)
+    }
+
     pub fn move_unit(ctx: Context<MoveUnit>, unit_id: u32, x: u8, y: u8) -> Result<()> {
         instructions::move_unit(ctx, unit_id, x, y)
     }
@@ -29,6 +33,10 @@ pub mod solciv {
 
     pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Result<()> {
         instructions::upgrade_tile(ctx, x, y, unit_id)
+    }
+
+    pub fn attack_unit(ctx: Context<AttackUnit>, attacker_id: u32, defender_id: u32) -> Result<()> {
+        instructions::attack_unit(ctx, attacker_id, defender_id)
     }
 
     pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
