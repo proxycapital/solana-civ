@@ -237,8 +237,41 @@ describe("solciv", () => {
     const playerAccount = await program.account.player.fetch(playerKey);
     expect(playerAccount.resources.gold).greaterThan(prevPlayerAccount.resources.gold);
     expect(playerAccount.resources.wood).eq(2); // we have upgraded forest tile to TimberCamp
-    console.log(playerAccount.units);
     const npcAccount = await program.account.npc.fetch(npcKey);
-    console.log(npcAccount.units);
+  });
+
+  it("Should close game", async () => {
+    const accounts = {
+      game: gameKey,
+      npcAccount: npcKey,
+      playerAccount: playerKey,
+      player: provider.publicKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    };
+
+    const prevBalance = await provider.connection.getBalance(provider.publicKey);
+    await program.methods.closeGame().accounts(accounts).rpc();
+    const balance = await provider.connection.getBalance(provider.publicKey);
+    // verify that rent was returned
+    expect(balance).greaterThan(prevBalance);
+    // verify that all accounts were closed
+    try {
+      await program.account.game.fetch(gameKey);
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("Account does not exist or has no data");
+    }
+    try {
+      await program.account.player.fetch(playerKey);
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("Account does not exist or has no data");
+    }
+    try {
+      await program.account.npc.fetch(npcKey);
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("Account does not exist or has no data");
+    }
   });
 });

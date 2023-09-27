@@ -42,4 +42,8 @@ pub mod solciv {
     pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
         instructions::end_turn(ctx)
     }
+
+    pub fn close_game(ctx: Context<Close>) -> Result<()> {
+        instructions::close_game(ctx)
+    }
 }

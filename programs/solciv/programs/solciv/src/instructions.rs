@@ -66,6 +66,7 @@ pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
 
 pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
     ctx.accounts.npc_account.game = ctx.accounts.game.key().clone();
+    ctx.accounts.npc_account.player = ctx.accounts.player.key().clone();
     ctx.accounts.npc_account.next_city_id = 0;
     ctx.accounts.npc_account.next_unit_id = 0;
     ctx.accounts.game.npc = ctx.accounts.npc_account.key().clone();
@@ -465,6 +466,10 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
     Ok(())
 }
 
+pub fn close_game(_ctx: Context<Close>) -> Result<()> {
+    Ok(())
+}
+
 #[derive(Accounts)]
 pub struct InitializeGame<'info> {
     #[account(
@@ -581,4 +586,16 @@ pub struct EndTurn<'info> {
     pub npc_account: Account<'info, Npc>,
     #[account(mut)]
     pub player: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct Close<'info> {
+    #[account(mut, close = player, has_one = player)]
+    game: Account<'info, Game>,
+    #[account(mut, close = player, has_one = player)]
+    player_account: Account<'info, Player>,
+    #[account(mut, close = player, has_one = player)]
+    npc_account: Account<'info, Npc>,
+    #[account(mut)]
+    player: Signer<'info>,
 }

@@ -25,6 +25,7 @@ pub struct Player {
 #[account]
 pub struct Npc {
     pub game: Pubkey,
+    pub player: Pubkey,
     pub cities: Vec<City>,
     pub units: Vec<Unit>,
     pub next_city_id: u32,
