@@ -6,7 +6,7 @@ import { useGameState } from '../context/GameStateContext';
 
 const EndTurnButton: React.FC = () => {
   const { program, provider } = useWorkspace();
-  const { fetchPlayerState, fetchGameState } = useGameState();
+  const { fetchPlayerState, fetchGameState, fetchNpcs } = useGameState();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const endTurn = async () => {
@@ -21,15 +21,21 @@ const EndTurnButton: React.FC = () => {
         [Buffer.from("PLAYER"), gameKey.toBuffer(), provider!.publicKey.toBuffer()],
         program!.programId
       );
+      const [npcKey] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("NPC"), gameKey.toBuffer()],
+        program!.programId
+      );
       const accounts = {
         game: gameKey,
         playerAccount: playerKey,
+        npcAccount: npcKey,
         player: provider!.publicKey,
       };
       const tx = await program!.methods.endTurn().accounts(accounts).rpc();
       console.log(`End turn TX: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
       await fetchPlayerState();
       await fetchGameState();
+      await fetchNpcs();
     } catch (error) {
       console.error('Failed to end turn', error);
     }

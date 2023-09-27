@@ -1,7 +1,4 @@
-import {
-  Connection,
-  clusterApiUrl,
-} from "@solana/web3.js";
+import { Connection, clusterApiUrl } from "@solana/web3.js";
 import { Buffer } from "buffer";
 import { weightedRandomTile } from "../components/Terrain";
 import * as anchor from "@coral-xyz/anchor";
@@ -13,7 +10,7 @@ const { REACT_APP_RPC: RPC } = process.env;
 const connection = new Connection(RPC || clusterApiUrl("devnet"), "confirmed");
 
 export const getMap = async (provider: AnchorProvider | undefined, program: Program<Solciv> | undefined) => {
-  if (!provider || !program) { 
+  if (!provider || !program) {
     return null;
   }
   const [gameKey] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -25,8 +22,8 @@ export const getMap = async (provider: AnchorProvider | undefined, program: Prog
     [Buffer.from("PLAYER"), gameKey.toBuffer(), provider.publicKey.toBuffer()],
     program.programId
   );
-  
-  let gameAccount; 
+
+  let gameAccount;
   try {
     // @ts-ignore
     gameAccount = await program.account.game.fetch(gameKey);
@@ -38,7 +35,7 @@ export const getMap = async (provider: AnchorProvider | undefined, program: Prog
 };
 
 export const getGame = async (provider: AnchorProvider | undefined, program: Program<Solciv> | undefined) => {
-  if (!provider || !program) { 
+  if (!provider || !program) {
     return null;
   }
   const [gameKey] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -58,7 +55,7 @@ export const getGame = async (provider: AnchorProvider | undefined, program: Pro
 };
 
 export const getPlayer = async (provider: AnchorProvider | undefined, program: Program<Solciv> | undefined) => {
-  if (!provider || !program) { 
+  if (!provider || !program) {
     return null;
   }
   const [gameKey] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -80,9 +77,9 @@ export const getPlayer = async (provider: AnchorProvider | undefined, program: P
   }
   console.log("[solanaUtils] getPlayer()", playerAccount);
   const balances = playerAccount ? playerAccount.resources : {};
-  const units = playerAccount? playerAccount.units : [];
-  const cities = playerAccount? playerAccount.cities : [];
-  const tiles = playerAccount? playerAccount.tiles : [];
+  const units = playerAccount ? playerAccount.units : [];
+  const cities = playerAccount ? playerAccount.cities : [];
+  const tiles = playerAccount ? playerAccount.tiles : [];
 
   try {
     const balance = await connection.getBalance(provider.publicKey);
@@ -91,6 +88,34 @@ export const getPlayer = async (provider: AnchorProvider | undefined, program: P
     console.error("Failed to fetch balance", error);
   }
   return { balances, units, cities, tiles };
+};
+
+export const getNpcs = async (provider: AnchorProvider | undefined, program: Program<Solciv> | undefined) => {
+  if (!provider || !program) {
+    return null;
+  }
+  const [gameKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("GAME"), provider.publicKey.toBuffer()],
+    program.programId
+  );
+
+  const [npcKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("NPC"), gameKey.toBuffer()],
+    program.programId
+  );
+
+  let npcAccount;
+  try {
+    // @ts-ignore
+    npcAccount = await program.account.npc.fetch(npcKey);
+  } catch (error) {
+    console.log("Error while fetching npc account: ", error);
+  }
+  console.log("[solanaUtils] getNpcs()", npcAccount);
+  const units = npcAccount ? npcAccount.units : [];
+  const cities = npcAccount ? npcAccount.cities : [];
+
+  return { units, cities };
 };
 
 export const initializeGame = async (provider: AnchorProvider, program: Program<Solciv>) => {
@@ -105,8 +130,14 @@ export const initializeGame = async (provider: AnchorProvider, program: Program<
     program.programId
   );
   console.log("Player account address", playerKey.toString());
-  
-  let gameAccount; 
+
+  const [npcKey] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("NPC"), gameKey.toBuffer()],
+    program.programId
+  );
+  console.log("NPC account address", npcKey.toString());
+
+  let gameAccount;
   try {
     // @ts-ignore
     gameAccount = await program.account.game.fetch(gameKey);
@@ -116,7 +147,7 @@ export const initializeGame = async (provider: AnchorProvider, program: Program<
   if (gameAccount && gameAccount.player.toBase58() === provider.publicKey.toBase58()) {
     console.log("Existing game account", gameAccount);
   } else {
-    const randomMap = Array.from({length: 400}, () => weightedRandomTile());
+    const randomMap = Array.from({ length: 400 }, () => weightedRandomTile());
 
     const accounts = {
       game: gameKey,
@@ -133,8 +164,8 @@ export const initializeGame = async (provider: AnchorProvider, program: Program<
   }
   let playerAccount;
   try {
-  // @ts-ignore
-  playerAccount = await program.account.player.fetch(playerKey);
+    // @ts-ignore
+    playerAccount = await program.account.player.fetch(playerKey);
   } catch (error) {
     console.log("Error while fetching player account: ", error);
   }
@@ -157,6 +188,32 @@ export const initializeGame = async (provider: AnchorProvider, program: Program<
     const account = await program.account.player.fetch(playerKey);
     console.log("Created player account", account);
   }
+  let npcAccount;
+  try {
+    // @ts-ignore
+    npcAccount = await program.account.npc.fetch(npcKey);
+  } catch (error) {
+    console.log("Error while fetching npc account: ", error);
+  }
+  if (npcAccount) {
+    console.log("Existing npc account", npcAccount);
+  } else {
+    const accounts = {
+      game: gameKey,
+      npcAccount: npcKey,
+      player: provider.publicKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    };
+    const tx = await program.methods.initializeNpc().accounts(accounts).rpc();
+    console.log("Transaction signature", tx);
+
+    // wait for transaction to be confirmed
+    await connection.confirmTransaction(tx);
+
+    // @ts-ignore
+    const account = await program.account.npc.fetch(npcKey);
+    console.log("Created npc account", account);
+  }
 };
 
 export const foundCity = async (provider: AnchorProvider, program: Program<Solciv>, unit: any) => {
@@ -169,7 +226,7 @@ export const foundCity = async (provider: AnchorProvider, program: Program<Solci
     [Buffer.from("PLAYER"), gameKey.toBuffer(), provider.publicKey.toBuffer()],
     program.programId
   );
-  
+
   const accounts = {
     game: gameKey,
     player: provider.publicKey,
@@ -196,7 +253,7 @@ export const upgradeLandPlot = async (provider: AnchorProvider, program: Program
     [Buffer.from("PLAYER"), gameKey.toBuffer(), provider.publicKey.toBuffer()],
     program.programId
   );
-  
+
   const accounts = {
     game: gameKey,
     player: provider.publicKey,

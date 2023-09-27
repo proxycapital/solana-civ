@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useWorkspace } from '../context/AnchorContext';
-import { getPlayer, getGame } from '../utils/solanaUtils';
+import { getPlayer, getGame, getNpcs } from '../utils/solanaUtils';
 
 type Game = {
   turn: number,
@@ -19,9 +19,11 @@ type Resources = {
 interface GameStateContextType {
   fetchPlayerState: () => Promise<void>;
   fetchGameState: () => Promise<void>;
+  fetchNpcs: () => Promise<void>;
   game: Game,
   cities: any[];
   upgradedTiles: any[];
+  npcUnits: any[];
   resources: Resources,
   allUnits: any[];
 }
@@ -47,6 +49,7 @@ export const GameStateProvider: React.FC<BaseLayoutProps> = ({ children }) => {
   const [cities, setCities] = useState([] as any[]);
   const [upgradedTiles, setUpgradedTiles] = useState([] as any[]);
   const [allUnits, setUnits] = useState([] as any[]);
+  const [npcUnits, setNpcUnits] = useState([] as any[]);
 
   // const updateUnits = (updatedUnits: any[]) => setUnits(updatedUnits);
 
@@ -60,6 +63,17 @@ export const GameStateProvider: React.FC<BaseLayoutProps> = ({ children }) => {
       console.error('Failed to fetch game state', error);
     }
   };
+
+  const fetchNpcs = async () => {
+    try {
+      const npcs = await getNpcs(provider, program);
+      if (npcs) {
+        setNpcUnits(npcs.units);
+      }
+    } catch (error) {
+      console.error('Failed to fetch npcs', error);
+    }
+  }
 
   const fetchPlayerState = async () => {
     try {
@@ -87,10 +101,11 @@ export const GameStateProvider: React.FC<BaseLayoutProps> = ({ children }) => {
   useEffect(() => {
     fetchGameState();
     fetchPlayerState();
+    fetchNpcs();
   }, []);
 
   return (
-    <GameStateContext.Provider value={{ fetchPlayerState, fetchGameState, game, cities, upgradedTiles, resources, allUnits }}>
+    <GameStateContext.Provider value={{ fetchPlayerState, fetchGameState, fetchNpcs, game, cities, upgradedTiles, resources, npcUnits, allUnits }}>
       {children}
     </GameStateContext.Provider>
   );

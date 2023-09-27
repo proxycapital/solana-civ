@@ -126,6 +126,33 @@ div.unit img {
   border-radius: 45px;
 }
 
+.unit.npc {
+  box-shadow: 0 0 5px 2px red;
+  filter: none !important;
+  border-radius: 45px;
+}
+
+div.unit.npc img {
+  border: 1px solid red;
+}
+
+.unit .health-bar {
+  width: 100%;
+  background-color: #831818;
+  position: absolute;
+  height: 5px;
+  top: -5px;
+  left: 0;
+}
+
+.unit .health-bar .health {
+  background-color: #31c315;
+  position: absolute;
+  height: 5px;
+  top: 0px;
+  left: 0;
+}
+
 .land-plot-resource {
   position: absolute;
   z-index: 1;

@@ -10,6 +10,7 @@ interface UnitInfoProps {
     unitId: number;
     type: string;
     movementRange: number;
+    health: number;
     builds?: number;
     strength?: number;
   };
@@ -36,7 +37,7 @@ const UnitInfoWindow: React.FC<UnitInfoProps> = ({unit}) => {
     <div className="unit-info-window">
       <img src={`/${type}.png`} alt={type} />
       <div><strong>{displayType}</strong></div>
-      <div>HP: 100/100</div>
+      <div>HP: {unit.health}/100</div>
       <div>Movements: {movementRange}/{movementRange}</div>
       {builds !== undefined && <div>Builds: {builds}/1</div>}
       {strength !== undefined && <div>Strength: {strength}</div>}
