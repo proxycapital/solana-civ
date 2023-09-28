@@ -1,27 +1,8 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-programs/solciv/target/
 
-# dependencies
-frontend/node_modules
-/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# production
-/build
-target
-
-# misc
+.anchor
 .DS_Store
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+target
+**/*.rs.bk
+node_modules
+test-ledger
+.yarn
