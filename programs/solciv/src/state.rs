@@ -49,29 +49,24 @@ pub struct City {
     pub x: u8,
     pub y: u8,
     pub health: u32,
-    pub defence: u32,
+    pub attack: u32,
     pub population: u32,
     pub gold_yield: u32,
     pub food_yield: u32,
     pub production_yield: u32,
     pub science_yield: u32,
     pub buildings: Vec<BuildingType>,
-    pub production_queue: Vec<ProductionQueue>,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct ProductionQueue {
-    pub production_item: Option<ProductionItem>,
+    pub production_queue: Vec<ProductionItem>,
     pub accumulated_production: u32,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq)]
 pub enum ProductionItem {
     Unit(UnitType),
     Building(BuildingType),
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq)]
 pub enum BuildingType {
     Barracks,        // units ?
     Wall,            // defense
@@ -135,7 +130,7 @@ impl City {
             x,
             y,
             health: 100,
-            defence: 0,
+            attack: 0,
             population: 1,
             gold_yield: 2,
             food_yield: 2,
@@ -143,7 +138,67 @@ impl City {
             science_yield: 1,
             buildings: vec![],
             production_queue: vec![],
+            accumulated_production: 0,
         }
+    }
+
+    pub fn add_to_production_queue(&mut self, item: ProductionItem) -> Result<()> {
+
+        match item {
+            ProductionItem::Building(building_type) => {
+                if self.buildings.contains(&building_type) {
+                    return err!(CityError::BuildingAlreadyExists);
+                }
+                if self.production_queue.contains(&item) {
+                    return err!(CityError::AlreadyQueued);
+                }
+            }
+            _ => (), // Nothing extra for units
+        }
+
+        self.production_queue.push(item);
+
+        Ok(())
+    }
+
+    pub fn construct_building(&mut self, building_type: BuildingType) -> Result<()> {
+        match building_type {
+            BuildingType::Barracks => self.attack += 2,
+            BuildingType::Wall => {
+                self.attack += 2;
+                self.health += 25;
+            }
+            BuildingType::WallMedieval => {
+                self.attack += 4;
+                self.health += 25;
+            }
+            BuildingType::WallRenaissance => {
+                self.attack += 4;
+                self.health += 25;
+            }
+            BuildingType::WallIndustrial => {
+                self.attack += 4;
+                self.health += 25;
+            }
+            BuildingType::Library => self.science_yield += 2,
+            BuildingType::School => self.science_yield += 3,
+            BuildingType::University => self.science_yield += 4,
+            BuildingType::Observatory => self.science_yield += 5,
+            BuildingType::Forge => self.production_yield += 2,
+            BuildingType::Factory => self.production_yield += 3,
+            BuildingType::EnergyPlant => self.production_yield += 4,
+            BuildingType::Market => self.gold_yield += 2,
+            BuildingType::Bank => self.gold_yield += 3,
+            BuildingType::StockExchange => self.gold_yield += 4,
+            BuildingType::Granary => self.food_yield += 2,
+            BuildingType::Mill => self.food_yield += 2,
+            BuildingType::Bakery => self.food_yield += 3,
+            BuildingType::Supermarket => self.food_yield += 4,
+            _ => (),
+        }
+        self.buildings.push(building_type);
+
+        Ok(())
     }
 }
 
@@ -215,6 +270,7 @@ impl Unit {
         if !self.is_alive
             || !matches!(
                 self.unit_type,
+                // @todo: add more unit types and move this to a separate function
                 UnitType::Warrior | UnitType::Archer | UnitType::Swordsman
             )
         {

@@ -280,6 +280,28 @@ pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Re
     Ok(())
 }
 
+pub fn add_to_production_queue(
+    ctx: Context<AddToProductionQueue>,
+    city_id: u32,
+    item: ProductionItem,
+) -> Result<()> {
+    let city = ctx
+        .accounts
+        .player_account
+        .cities
+        .iter_mut()
+        .find(|city| city.city_id == city_id)
+        .ok_or(CityError::CityNotFound)?;
+
+    if (city.production_queue.len() as u8) >= MAX_PRODUCTION_QUEUE {
+        return err!(CityError::QueueFull);
+    }
+
+    city.add_to_production_queue(item)?;
+
+    Ok(())
+}
+
 pub fn attack_unit(ctx: Context<AttackUnit>, attacker_id: u32, defender_id: u32) -> Result<()> {
     let attacker = ctx
         .accounts
@@ -559,6 +581,14 @@ pub struct MoveUnit<'info> {
 pub struct UpgradeTile<'info> {
     #[account(mut)]
     pub game: Account<'info, Game>,
+    #[account(mut)]
+    pub player_account: Account<'info, Player>,
+    #[account(mut)]
+    pub player: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct AddToProductionQueue<'info> {
     #[account(mut)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]
