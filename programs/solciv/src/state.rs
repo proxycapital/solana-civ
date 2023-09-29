@@ -56,16 +56,42 @@ pub struct City {
     pub production_yield: u32,
     pub science_yield: u32,
     pub buildings: Vec<BuildingType>,
+    pub production_queue: Vec<ProductionQueue>,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct ProductionQueue {
+    pub production_item: Option<ProductionItem>,
+    pub accumulated_production: u32,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
+pub enum ProductionItem {
+    Unit(UnitType),
+    Building(BuildingType),
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
 pub enum BuildingType {
-    Barracks,
-    Wall,
-    Market,
-    Library,
-    School,
-    University,
+    Barracks,        // units ?
+    Wall,            // defense
+    WallMedieval,    // defense
+    WallRenaissance, // defense
+    WallIndustrial,  // defense
+    Library,         // science
+    School,          // science
+    University,      // science
+    Observatory,     // science
+    Forge,           // production
+    Factory,         // production
+    EnergyPlant,     // prooduction
+    Market,          // gold
+    Bank,            // gold
+    StockExchange,   // gold
+    Granary,         // food
+    Mill,            // food
+    Bakery,          // food
+    Supermarket,     // food
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone)]
@@ -80,6 +106,10 @@ pub struct Unit {
     pub health: u8,
     pub movement_range: u8,
     pub remaining_actions: u8,
+    pub base_production_cost: u32,
+    pub base_gold_cost: u32,
+    pub base_resource_cost: u32,
+    pub is_ranged: bool,
     pub is_alive: bool,
 }
 
@@ -90,6 +120,10 @@ pub enum UnitType {
     Warrior,
     Archer,
     Swordsman,
+    Crossbowman,
+    Musketman,
+    Rifleman,
+    Tank,
 }
 
 impl City {
@@ -108,6 +142,7 @@ impl City {
             production_yield: 2,
             science_yield: 1,
             buildings: vec![],
+            production_queue: vec![],
         }
     }
 }
@@ -121,7 +156,16 @@ impl Unit {
         x: u8,
         y: u8,
     ) -> Self {
-        let (health, attack, movement_range, remaining_actions) = Self::get_base_stats(unit_type);
+        let (
+            is_ranged,
+            health,
+            attack,
+            movement_range,
+            remaining_actions,
+            base_production_cost,
+            base_gold_cost,
+            base_resource_cost,
+        ) = Self::get_base_stats(unit_type);
 
         Self {
             unit_id,
@@ -134,6 +178,10 @@ impl Unit {
             health,
             movement_range,
             remaining_actions,
+            base_production_cost,
+            base_gold_cost,
+            base_resource_cost,
+            is_ranged,
             is_alive: true,
         }
     }
@@ -147,14 +195,18 @@ impl Unit {
     /// ### Returns
     ///
     /// A tuple containing four `u8` values representing the base stats of the unit in the following order:
-    /// `(health, attack, movement_range, remaining_actions)`.
-    fn get_base_stats(unit_type: UnitType) -> (u8, u8, u8, u8) {
+    /// `(is_ranged, health, attack, movement_range, remaining_actions, base_production_cost, base_gold_cost, base_resource_cost)`.
+    fn get_base_stats(unit_type: UnitType) -> (bool, u8, u8, u8, u8, u32, u32, u32) {
         match unit_type {
-            UnitType::Settler => (100, 0, 2, 1),
-            UnitType::Builder => (100, 0, 2, 1),
-            UnitType::Warrior => (100, 20, 2, 0),
-            UnitType::Archer => (100, 30, 2, 0),
-            UnitType::Swordsman => (100, 50, 2, 0),
+            UnitType::Settler => (false, 100, 0, 2, 1, 0, 0, 100),
+            UnitType::Builder => (false, 100, 0, 2, 1, 20, 200, 0),
+            UnitType::Warrior => (false, 100, 8, 2, 0, 20, 240, 0),
+            UnitType::Archer => (true, 100, 6, 2, 0, 20, 240, 0),
+            UnitType::Swordsman => (false, 100, 14, 2, 0, 30, 240, 10),
+            UnitType::Crossbowman => (true, 100, 24, 2, 0, 40, 300, 0),
+            UnitType::Musketman => (true, 100, 32, 2, 0, 50, 360, 0),
+            UnitType::Rifleman => (true, 100, 40, 3, 0, 60, 420, 0),
+            UnitType::Tank => (true, 100, 50, 4, 0, 80, 500, 0),
         }
     }
 

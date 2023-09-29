@@ -6,6 +6,7 @@ const MAX_UNITS: u8 = 20;
 const MAX_CITIES: u8 = 20;
 const MAX_BUILDINGS: u8 = 20;
 const MAX_UPGRADED_TILES: u8 = 100;
+const MAX_PRODUCTION_QUEUE: u8 = 5;
 
 pub fn initialize_game(ctx: Context<InitializeGame>, map: [u8; 400]) -> Result<()> {
     ctx.accounts.game.player = ctx.accounts.player.key().clone();
