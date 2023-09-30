@@ -199,6 +199,7 @@ pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32) -> Result
         x,
         y,
     );
+
     ctx.accounts.player_account.cities.push(new_city);
 
     // Remove the settler unit used to found the city.
@@ -396,6 +397,10 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
 
     // NPC MOVEMENTS AND ATTACKS //
     // Iterate over each NPC unit and make a decision to move or attack
+    let player_units: Vec<_> = ctx.accounts.player_account.units.iter().map(|u| (u.x, u.y, u.is_alive)).collect();
+    let npc_units: Vec<_> = ctx.accounts.npc_account.units.iter().map(|u| (u.x, u.y, u.is_alive)).collect();
+    let player_cities: Vec<_> = ctx.accounts.player_account.cities.iter().map(|c| (c.x, c.y)).collect();
+    
     for npc_unit in &mut ctx.accounts.npc_account.units {
         if !npc_unit.is_alive {
             continue;
@@ -469,13 +474,14 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
 
                 // Check if the new position is within map bounds and is not occupied by another unit or city.
                 if new_x < 20 && new_y < 20
-                    && !ctx.accounts.player_account.units.iter().any(|u| u.x == new_x && u.y == new_y && u.is_alive)
-                    // @todo: this is a bug. Fix me
-                    // && !ctx.accounts.npc_account.units.iter().any(|u| u.x == new_x && u.y == new_y && u.is_alive)
-                    && !ctx.accounts.player_account.cities.iter().any(|c| c.x == new_x && c.y == new_y)
+                    && !player_units.iter().any(|&(x, y, is_alive)| x == new_x && y == new_y && is_alive)
+                    && !npc_units.iter().any(|&(x, y, is_alive)| x == new_x && y == new_y && is_alive)
+                    && !player_cities.iter().any(|&(x, y)| x == new_x && y == new_y)
                 {
                     npc_unit.x = new_x;
                     npc_unit.y = new_y;
+                } else {
+                    msg!("NPC unit #{} cannot move to position ({}, {})", npc_unit.unit_id, new_x, new_y);
                 }
             }
         }

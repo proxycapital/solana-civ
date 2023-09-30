@@ -3,7 +3,7 @@ mod instructions;
 mod state;
 
 use crate::instructions::*;
-use crate::state::{ ProductionItem };
+use crate::state::ProductionItem;
 use anchor_lang::prelude::*;
 
 declare_id!("GoiXQMoEhhLM8MSbfUFhHz4punJqXNHEQh6ysegmuHJz");
