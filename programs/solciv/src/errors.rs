@@ -47,3 +47,18 @@ pub enum TileError {
     #[msg("Tile is occupied by another construction")]
     TileOccupied,
 }
+
+#[error_code]
+pub enum CityError {
+    #[msg("Production queue is full")]
+    QueueFull,
+
+    #[msg("Building already exists")]
+    BuildingAlreadyExists,
+
+    #[msg("City not found")]
+    CityNotFound,
+
+    #[msg("Counstruction is already in progress")]
+    AlreadyQueued,
+}

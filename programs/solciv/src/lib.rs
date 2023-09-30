@@ -3,6 +3,7 @@ mod instructions;
 mod state;
 
 use crate::instructions::*;
+use crate::state::ProductionItem;
 use anchor_lang::prelude::*;
 
 declare_id!("GoiXQMoEhhLM8MSbfUFhHz4punJqXNHEQh6ysegmuHJz");
@@ -29,6 +30,14 @@ pub mod solciv {
 
     pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32) -> Result<()> {
         instructions::found_city(ctx, x, y, unit_id)
+    }
+
+    pub fn add_to_production_queue(
+        ctx: Context<AddToProductionQueue>,
+        city_id: u32,
+        item: ProductionItem,
+    ) -> Result<()> {
+        instructions::add_to_production_queue(ctx, city_id, item)
     }
 
     pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Result<()> {

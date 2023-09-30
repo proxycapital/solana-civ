@@ -49,23 +49,44 @@ pub struct City {
     pub x: u8,
     pub y: u8,
     pub health: u32,
-    pub defence: u32,
+    pub attack: u32,
     pub population: u32,
     pub gold_yield: u32,
     pub food_yield: u32,
     pub production_yield: u32,
     pub science_yield: u32,
     pub buildings: Vec<BuildingType>,
+    pub production_queue: Vec<ProductionItem>,
+    pub accumulated_production: u32,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq)]
+pub enum ProductionItem {
+    Unit(UnitType),
+    Building(BuildingType),
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq)]
 pub enum BuildingType {
-    Barracks,
-    Wall,
-    Market,
-    Library,
-    School,
-    University,
+    Barracks,        // units ?
+    Wall,            // defense
+    WallMedieval,    // defense
+    WallRenaissance, // defense
+    WallIndustrial,  // defense
+    Library,         // science
+    School,          // science
+    University,      // science
+    Observatory,     // science
+    Forge,           // production
+    Factory,         // production
+    EnergyPlant,     // prooduction
+    Market,          // gold
+    Bank,            // gold
+    StockExchange,   // gold
+    Granary,         // food
+    Mill,            // food
+    Bakery,          // food
+    Supermarket,     // food
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone)]
@@ -80,6 +101,10 @@ pub struct Unit {
     pub health: u8,
     pub movement_range: u8,
     pub remaining_actions: u8,
+    pub base_production_cost: u32,
+    pub base_gold_cost: u32,
+    pub base_resource_cost: u32,
+    pub is_ranged: bool,
     pub is_alive: bool,
 }
 
@@ -90,6 +115,10 @@ pub enum UnitType {
     Warrior,
     Archer,
     Swordsman,
+    Crossbowman,
+    Musketman,
+    Rifleman,
+    Tank,
 }
 
 impl City {
@@ -101,13 +130,100 @@ impl City {
             x,
             y,
             health: 100,
-            defence: 0,
+            attack: 0,
             population: 1,
             gold_yield: 2,
             food_yield: 2,
             production_yield: 2,
             science_yield: 1,
             buildings: vec![],
+            production_queue: vec![],
+            accumulated_production: 0,
+        }
+    }
+
+    pub fn add_to_production_queue(&mut self, item: ProductionItem) -> Result<()> {
+        match item {
+            ProductionItem::Building(building_type) => {
+                if self.buildings.contains(&building_type) {
+                    return err!(CityError::BuildingAlreadyExists);
+                }
+                if self.production_queue.contains(&item) {
+                    return err!(CityError::AlreadyQueued);
+                }
+            }
+            _ => (), // Nothing extra for units
+        }
+
+        self.production_queue.push(item);
+
+        Ok(())
+    }
+
+    pub fn construct_building(&mut self, building_type: BuildingType) -> Result<()> {
+        match building_type {
+            BuildingType::Barracks => self.attack += 2,
+            BuildingType::Wall => {
+                self.attack += 2;
+                self.health += 25;
+            }
+            BuildingType::WallMedieval => {
+                self.attack += 4;
+                self.health += 25;
+            }
+            BuildingType::WallRenaissance => {
+                self.attack += 4;
+                self.health += 25;
+            }
+            BuildingType::WallIndustrial => {
+                self.attack += 4;
+                self.health += 25;
+            }
+            BuildingType::Library => self.science_yield += 2,
+            BuildingType::School => self.science_yield += 3,
+            BuildingType::University => self.science_yield += 4,
+            BuildingType::Observatory => self.science_yield += 5,
+            BuildingType::Forge => self.production_yield += 2,
+            BuildingType::Factory => self.production_yield += 3,
+            BuildingType::EnergyPlant => self.production_yield += 4,
+            BuildingType::Market => self.gold_yield += 2,
+            BuildingType::Bank => self.gold_yield += 3,
+            BuildingType::StockExchange => self.gold_yield += 4,
+            BuildingType::Granary => self.food_yield += 2,
+            BuildingType::Mill => self.food_yield += 2,
+            BuildingType::Bakery => self.food_yield += 3,
+            BuildingType::Supermarket => self.food_yield += 4,
+            _ => (),
+        }
+        self.buildings.push(building_type);
+
+        Ok(())
+    }
+}
+
+impl BuildingType {
+    /// returns `(base_production_cost, base_gold_cost, required_building_type, required_technology_type)`
+    pub fn get_base_stats(building_type: BuildingType) -> (u32, u32) {
+        match building_type {
+            BuildingType::Barracks => (20, 20),
+            BuildingType::Wall => (20, 20),
+            BuildingType::WallMedieval => (20, 20),
+            BuildingType::WallRenaissance => (20, 20),
+            BuildingType::WallIndustrial => (20, 20),
+            BuildingType::Library => (20, 20),
+            BuildingType::School => (20, 20),
+            BuildingType::University => (20, 20),
+            BuildingType::Observatory => (20, 20),
+            BuildingType::Forge => (20, 20),
+            BuildingType::Factory => (20, 20),
+            BuildingType::EnergyPlant => (20, 20),
+            BuildingType::Market => (20, 20),
+            BuildingType::Bank => (20, 20),
+            BuildingType::StockExchange => (20, 20),
+            BuildingType::Granary => (20, 20),
+            BuildingType::Mill => (20, 20),
+            BuildingType::Bakery => (20, 20),
+            BuildingType::Supermarket => (20, 20),
         }
     }
 }
@@ -121,7 +237,16 @@ impl Unit {
         x: u8,
         y: u8,
     ) -> Self {
-        let (health, attack, movement_range, remaining_actions) = Self::get_base_stats(unit_type);
+        let (
+            is_ranged,
+            health,
+            attack,
+            movement_range,
+            remaining_actions,
+            base_production_cost,
+            base_gold_cost,
+            base_resource_cost,
+        ) = Self::get_base_stats(unit_type);
 
         Self {
             unit_id,
@@ -134,6 +259,10 @@ impl Unit {
             health,
             movement_range,
             remaining_actions,
+            base_production_cost,
+            base_gold_cost,
+            base_resource_cost,
+            is_ranged,
             is_alive: true,
         }
     }
@@ -147,14 +276,18 @@ impl Unit {
     /// ### Returns
     ///
     /// A tuple containing four `u8` values representing the base stats of the unit in the following order:
-    /// `(health, attack, movement_range, remaining_actions)`.
-    fn get_base_stats(unit_type: UnitType) -> (u8, u8, u8, u8) {
+    /// `(is_ranged, health, attack, movement_range, remaining_actions, base_production_cost, base_gold_cost, base_resource_cost)`.
+    pub fn get_base_stats(unit_type: UnitType) -> (bool, u8, u8, u8, u8, u32, u32, u32) {
         match unit_type {
-            UnitType::Settler => (100, 0, 2, 1),
-            UnitType::Builder => (100, 0, 2, 1),
-            UnitType::Warrior => (100, 20, 2, 0),
-            UnitType::Archer => (100, 30, 2, 0),
-            UnitType::Swordsman => (100, 50, 2, 0),
+            UnitType::Settler => (false, 100, 0, 2, 1, 0, 0, 100),
+            UnitType::Builder => (false, 100, 0, 2, 1, 20, 200, 0),
+            UnitType::Warrior => (false, 100, 8, 2, 0, 20, 240, 0),
+            UnitType::Archer => (true, 100, 6, 2, 0, 20, 240, 0),
+            UnitType::Swordsman => (false, 100, 14, 2, 0, 30, 240, 10),
+            UnitType::Crossbowman => (true, 100, 24, 2, 0, 40, 300, 0),
+            UnitType::Musketman => (true, 100, 32, 2, 0, 50, 360, 0),
+            UnitType::Rifleman => (true, 100, 40, 3, 0, 60, 420, 0),
+            UnitType::Tank => (true, 100, 50, 4, 0, 80, 500, 0),
         }
     }
 
@@ -163,6 +296,7 @@ impl Unit {
         if !self.is_alive
             || !matches!(
                 self.unit_type,
+                // @todo: add more unit types and move this to a separate function
                 UnitType::Warrior | UnitType::Archer | UnitType::Swordsman
             )
         {
