@@ -297,7 +297,9 @@ describe("solciv", () => {
       npcAccount: npcKey,
     };
 
+    for (let i = 1; i <= 20; i++) {
     await program.methods.endTurn().accounts(accounts).rpc();
+    }
     const account = await program.account.game.fetch(gameKey);
     expect(account.turn).greaterThan(1);
     const playerAccount = await program.account.player.fetch(playerKey);
@@ -306,6 +308,8 @@ describe("solciv", () => {
     const npcAccount = await program.account.npc.fetch(npcKey);
     console.log(playerAccount.cities[0]);
     console.log(playerAccount.units);
+    console.log(playerAccount.resources);
+    console.log(npcAccount.units);
   });
 
   it("Should close game", async () => {

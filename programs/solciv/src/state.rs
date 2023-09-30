@@ -68,7 +68,7 @@ pub enum ProductionItem {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq)]
 pub enum BuildingType {
-    Barracks,        // units ?
+    Barracks,        // defense + units
     Wall,            // defense
     WallMedieval,    // defense
     WallRenaissance, // defense
@@ -119,6 +119,16 @@ pub enum UnitType {
     Musketman,
     Rifleman,
     Tank,
+}
+
+impl Player {
+    pub fn update_resources(&mut self, gold: u32, food: u32, wood: u32, stone: u32) -> Result<()> {
+        self.resources.gold = self.resources.gold.checked_add(gold).unwrap_or(u32::MAX);
+        self.resources.food = self.resources.food.checked_add(food).unwrap_or(u32::MAX);
+        self.resources.wood = self.resources.wood.checked_add(wood).unwrap_or(u32::MAX);
+        self.resources.stone = self.resources.stone.checked_add(stone).unwrap_or(u32::MAX);
+        Ok(())
+    }
 }
 
 impl City {
