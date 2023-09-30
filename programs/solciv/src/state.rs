@@ -143,7 +143,6 @@ impl City {
     }
 
     pub fn add_to_production_queue(&mut self, item: ProductionItem) -> Result<()> {
-
         match item {
             ProductionItem::Building(building_type) => {
                 if self.buildings.contains(&building_type) {
@@ -202,6 +201,33 @@ impl City {
     }
 }
 
+impl BuildingType {
+    /// returns `(base_production_cost, base_gold_cost, required_building_type, required_technology_type)`
+    pub fn get_base_stats(building_type: BuildingType) -> (u32, u32) {
+        match building_type {
+            BuildingType::Barracks => (20, 20),
+            BuildingType::Wall => (20, 20),
+            BuildingType::WallMedieval => (20, 20),
+            BuildingType::WallRenaissance => (20, 20),
+            BuildingType::WallIndustrial => (20, 20),
+            BuildingType::Library => (20, 20),
+            BuildingType::School => (20, 20),
+            BuildingType::University => (20, 20),
+            BuildingType::Observatory => (20, 20),
+            BuildingType::Forge => (20, 20),
+            BuildingType::Factory => (20, 20),
+            BuildingType::EnergyPlant => (20, 20),
+            BuildingType::Market => (20, 20),
+            BuildingType::Bank => (20, 20),
+            BuildingType::StockExchange => (20, 20),
+            BuildingType::Granary => (20, 20),
+            BuildingType::Mill => (20, 20),
+            BuildingType::Bakery => (20, 20),
+            BuildingType::Supermarket => (20, 20),
+        }
+    }
+}
+
 impl Unit {
     pub fn new(
         unit_id: u32,
@@ -251,7 +277,7 @@ impl Unit {
     ///
     /// A tuple containing four `u8` values representing the base stats of the unit in the following order:
     /// `(is_ranged, health, attack, movement_range, remaining_actions, base_production_cost, base_gold_cost, base_resource_cost)`.
-    fn get_base_stats(unit_type: UnitType) -> (bool, u8, u8, u8, u8, u32, u32, u32) {
+    pub fn get_base_stats(unit_type: UnitType) -> (bool, u8, u8, u8, u8, u32, u32, u32) {
         match unit_type {
             UnitType::Settler => (false, 100, 0, 2, 1, 0, 0, 100),
             UnitType::Builder => (false, 100, 0, 2, 1, 20, 200, 0),

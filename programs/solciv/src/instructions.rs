@@ -188,11 +188,11 @@ pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32) -> Result
         .iter()
         .any(|city| city.x == x && city.y == y)
         || ctx
-        .accounts
-        .player_account
-        .tiles
-        .iter()
-        .any(|tile| tile.x == x && tile.y == y);
+            .accounts
+            .player_account
+            .tiles
+            .iter()
+            .any(|tile| tile.x == x && tile.y == y);
     if is_occupied {
         return err!(BuildingError::TileOccupied);
     }
@@ -403,10 +403,28 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
 
     // NPC MOVEMENTS AND ATTACKS //
     // Iterate over each NPC unit and make a decision to move or attack
-    let player_units: Vec<_> = ctx.accounts.player_account.units.iter().map(|u| (u.x, u.y, u.is_alive)).collect();
-    let npc_units: Vec<_> = ctx.accounts.npc_account.units.iter().map(|u| (u.x, u.y, u.is_alive)).collect();
-    let player_cities: Vec<_> = ctx.accounts.player_account.cities.iter().map(|c| (c.x, c.y)).collect();
-    
+    let player_units: Vec<_> = ctx
+        .accounts
+        .player_account
+        .units
+        .iter()
+        .map(|u| (u.x, u.y, u.is_alive))
+        .collect();
+    let npc_units: Vec<_> = ctx
+        .accounts
+        .npc_account
+        .units
+        .iter()
+        .map(|u| (u.x, u.y, u.is_alive))
+        .collect();
+    let player_cities: Vec<_> = ctx
+        .accounts
+        .player_account
+        .cities
+        .iter()
+        .map(|c| (c.x, c.y))
+        .collect();
+
     for npc_unit in &mut ctx.accounts.npc_account.units {
         if !npc_unit.is_alive {
             continue;
@@ -479,19 +497,74 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
                 let new_y = (npc_unit.y as i16 + dir_y) as u8;
 
                 // Check if the new position is within map bounds and is not occupied by another unit or city.
-                if new_x < 20 && new_y < 20
-                    && !player_units.iter().any(|&(x, y, is_alive)| x == new_x && y == new_y && is_alive)
-                    && !npc_units.iter().any(|&(x, y, is_alive)| x == new_x && y == new_y && is_alive)
+                if new_x < 20
+                    && new_y < 20
+                    && !player_units
+                        .iter()
+                        .any(|&(x, y, is_alive)| x == new_x && y == new_y && is_alive)
+                    && !npc_units
+                        .iter()
+                        .any(|&(x, y, is_alive)| x == new_x && y == new_y && is_alive)
                     && !player_cities.iter().any(|&(x, y)| x == new_x && y == new_y)
                 {
                     npc_unit.x = new_x;
                     npc_unit.y = new_y;
                 } else {
-                    msg!("NPC unit #{} cannot move to position ({}, {})", npc_unit.unit_id, new_x, new_y);
+                    msg!(
+                        "NPC unit #{} cannot move to position ({}, {})",
+                        npc_unit.unit_id,
+                        new_x,
+                        new_y
+                    );
                 }
             }
         }
     }
+
+    // Process the production queues of each city for the player
+    let player = ctx.accounts.player_account.player.clone();
+    let game_key = ctx.accounts.game.key().clone();
+    let mut next_unit_id = ctx.accounts.player_account.next_unit_id;
+
+    let mut new_units = Vec::new();
+    for city in &mut ctx.accounts.player_account.cities {
+        if let Some(item) = city.production_queue.first().cloned() {
+            let cost = match item {
+                ProductionItem::Unit(unit_type) => {
+                    // base_production_cost is the sixth item in the tuple returned by get_base_stats
+                    Unit::get_base_stats(unit_type).5
+                }
+                ProductionItem::Building(building_type) => {
+                    BuildingType::get_base_stats(building_type).0
+                }
+            };
+
+            if city.accumulated_production >= cost {
+                // Production completed
+                match item {
+                    ProductionItem::Unit(unit_type) => {
+                        // Create a new unit and add it to the player's units
+                        let new_unit =
+                            Unit::new(next_unit_id, player, game_key, unit_type, city.x, city.y);
+                        new_units.push(new_unit);
+                        next_unit_id += 1;
+                    }
+                    ProductionItem::Building(building_type) => {
+                        // Construct the building in the city
+                        city.construct_building(building_type)?;
+                    }
+                }
+                // Remove the item from the production queue and reset accumulated_production
+                city.production_queue.remove(0);
+                city.accumulated_production = 0;
+            } else {
+                // Increment the accumulated production by the city's production yield
+                city.accumulated_production += city.production_yield;
+            }
+        }
+    }
+    ctx.accounts.player_account.units.append(&mut new_units);
+    ctx.accounts.player_account.next_unit_id = next_unit_id;
 
     // Retain only alive units in the game
     ctx.accounts.player_account.units.retain(|u| u.is_alive);
