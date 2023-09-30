@@ -24,6 +24,22 @@ describe("solciv", () => {
     program.programId
   );
 
+  async function addToProductionQueue(cityId, item) {
+    const accounts = {
+      player: provider.publicKey,
+      playerAccount: playerKey,
+    };
+    await program.methods.addToProductionQueue(cityId, item).accounts(accounts).rpc();
+  }
+  
+  function checkProductionQueue(account, cityId, expectedQueue) {
+    const city = account.cities[cityId];
+    expect(city.productionQueue.length).equal(expectedQueue.length);
+    expectedQueue.forEach((item, index) => {
+      expect(city.productionQueue[index]).deep.equal(item);
+    });
+  }
+
   it("Initialize game", async () => {
     // generate random 20x20 map with tile types from 1 to 9
     const randomMap = Array.from({ length: 400 }, () => Math.floor(Math.random() * 9) + 1);
@@ -151,6 +167,58 @@ describe("solciv", () => {
     expect(city.x).equal(unit.x);
     expect(city.y).equal(unit.y);
     expect(city.cityId).equal(0);
+  });
+
+  it("Should add building to production queue", async () => {
+    const cityId = 0;
+    const productionItem = { building: { '0': { forge: {} } } };
+    await addToProductionQueue(cityId, productionItem);
+  
+    const account = await program.account.player.fetch(playerKey);
+    checkProductionQueue(account, cityId, [productionItem]);
+  });
+  
+  it("Should not duplicate the building in production queue", async () => {
+    const cityId = 0;
+    const productionItem = { building: { '0': { forge: {} } } };
+    try {
+      await addToProductionQueue(cityId, productionItem);
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("AlreadyQueued");
+    }
+  });
+  
+  it("Should add 4 more items to production queue", async () => {
+    const cityId = 0;
+    const items = [
+      { unit: { '0': { warrior: {} } } },
+      { unit: { '0': { warrior: {} } } },
+      { unit: { '0': { builder: {} } } },
+      { building: { '0': { granary: {} } } },
+    ];
+  
+    for (const item of items) {
+      await addToProductionQueue(cityId, item);
+    }
+  
+    const account = await program.account.player.fetch(playerKey);
+    const expectedQueue = [
+      { building: { '0': { forge: {} } } },
+      ...items,
+    ];
+    checkProductionQueue(account, cityId, expectedQueue);
+  });
+
+  it("Should not add 6th item to the production queue", async () => {
+    const cityId = 0;
+    const productionItem = { unit: { '0': { warrior: {} } } };
+    try {
+      await addToProductionQueue(cityId, productionItem);
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("QueueFull");
+    }
   });
 
   it("Should not upgrade land tile using Warrior", async () => {
