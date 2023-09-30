@@ -7,6 +7,7 @@ const MAX_CITIES: u8 = 20;
 const MAX_BUILDINGS: u8 = 20;
 const MAX_UPGRADED_TILES: u8 = 100;
 const MAX_PRODUCTION_QUEUE: u8 = 5;
+const MAP_BOUND: u8 = 20;
 
 pub fn initialize_game(ctx: Context<InitializeGame>, map: [u8; 400]) -> Result<()> {
     ctx.accounts.game.player = ctx.accounts.player.key().clone();
@@ -27,11 +28,12 @@ pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
     // @todo: consider implementing helper methods for initializing the resources, units or other default things
     ctx.accounts.player_account.resources = Resources {
         gold: 0,
-        food: 10,
+        food: 0,
         wood: 0,
         stone: 0,
         iron: 0,
     };
+    // player starts with 3 units: Settler, Builder, Warrior
     ctx.accounts.player_account.units = vec![
         Unit::new(
             0,
@@ -339,7 +341,7 @@ pub fn attack_unit(ctx: Context<AttackUnit>, attacker_id: u32, defender_id: u32)
         return err!(UnitError::OutOfAttackRange);
     }
 
-    attacker.perform_attack(defender)?;
+    attacker.attack_unit(defender)?;
 
     // Retain only alive units in the game
     ctx.accounts.player_account.units.retain(|u| u.is_alive);
@@ -348,192 +350,42 @@ pub fn attack_unit(ctx: Context<AttackUnit>, attacker_id: u32, defender_id: u32)
     Ok(())
 }
 
-pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
-    // Iterate over all units of the player and reset the movement_range to 2
-    for unit in &mut ctx.accounts.player_account.units.iter_mut() {
-        if unit.is_alive {
-            unit.movement_range = 2;
-        }
+fn reset_units_movement_range(units: &mut [Unit]) {
+    for unit in units.iter_mut().filter(|u| u.is_alive) {
+        unit.movement_range = 2;
+    }
+}
+
+fn calculate_resources(player_account: &Player) -> (u32, u32, u32, u32) {
+    // Calculate resources yielded by cities and tiles.
+    // This function will return a tuple (gold, food, wood, stone).
+    let mut resources = (0, 0, 0, 0);
+
+    for city in &player_account.cities {
+        resources.0 += city.gold_yield;
+        resources.1 += city.food_yield;
     }
 
-    let mut gold = 0;
-    let mut food = 0;
-    let mut wood = 0;
-    let mut stone = 0;
-    for city in &mut ctx.accounts.player_account.cities {
-        gold += city.gold_yield;
-        food += city.food_yield;
-    }
-    for tile in &mut ctx.accounts.player_account.tiles {
+    for tile in &player_account.tiles {
         match tile.tile_type {
-            TileType::TimberCamp => wood += 2,
-            TileType::StoneQuarry => stone += 2,
-            TileType::CornField => food += 2,
+            TileType::TimberCamp => resources.2 += 2,
+            TileType::StoneQuarry => resources.3 += 2,
+            TileType::CornField => resources.1 += 2,
         }
     }
 
-    ctx.accounts.player_account.resources.gold = ctx
-        .accounts
-        .player_account
-        .resources
-        .gold
-        .checked_add(gold)
-        .unwrap();
-    ctx.accounts.player_account.resources.food = ctx
-        .accounts
-        .player_account
-        .resources
-        .food
-        .checked_add(food)
-        .unwrap();
-    ctx.accounts.player_account.resources.wood = ctx
-        .accounts
-        .player_account
-        .resources
-        .wood
-        .checked_add(wood)
-        .unwrap();
-    ctx.accounts.player_account.resources.stone = ctx
-        .accounts
-        .player_account
-        .resources
-        .stone
-        .checked_add(stone)
-        .unwrap();
+    resources
+}
 
-    // NPC MOVEMENTS AND ATTACKS //
-    // Iterate over each NPC unit and make a decision to move or attack
-    let player_units: Vec<_> = ctx
-        .accounts
-        .player_account
-        .units
-        .iter()
-        .map(|u| (u.x, u.y, u.is_alive))
-        .collect();
-    let npc_units: Vec<_> = ctx
-        .accounts
-        .npc_account
-        .units
-        .iter()
-        .map(|u| (u.x, u.y, u.is_alive))
-        .collect();
-    let player_cities: Vec<_> = ctx
-        .accounts
-        .player_account
-        .cities
-        .iter()
-        .map(|c| (c.x, c.y))
-        .collect();
-
-    for npc_unit in &mut ctx.accounts.npc_account.units {
-        if !npc_unit.is_alive {
-            continue;
-        }
-
-        let mut min_dist = u16::MAX;
-        // x, y coordinates of the closest player's unit or city.
-        let mut closest_target: Option<(u8, u8)> = None;
-
-        // Find the closest player's unit or city to the NPC unit
-        for player_unit in &ctx.accounts.player_account.units {
-            if !player_unit.is_alive {
-                continue;
-            }
-            // @todo: this is supposed to be Euclidean distance,
-            // but for simplicity we use squared distance instead of the actual distance
-            let dist = ((npc_unit.x as i16 - player_unit.x as i16).pow(2)
-                + (npc_unit.y as i16 - player_unit.y as i16).pow(2)) as u16;
-            if dist < min_dist {
-                min_dist = dist;
-                closest_target = Some((player_unit.x, player_unit.y));
-            }
-        }
-
-        for city in &ctx.accounts.player_account.cities {
-            let dist = ((npc_unit.x as i16 - city.x as i16).pow(2)
-                + (npc_unit.y as i16 - city.y as i16).pow(2)) as u16;
-            if dist < min_dist {
-                min_dist = dist;
-                closest_target = Some((city.x, city.y));
-            }
-        }
-
-        // If a closest target was found, make decisions for NPC units based on the proximity to this target
-        if let Some((target_x, target_y)) = closest_target {
-            // Check if the attack is possible using Chebyshev distance.
-            let dist_x = (npc_unit.x as i16 - target_x as i16).abs();
-            let dist_y = (npc_unit.y as i16 - target_y as i16).abs();
-            let dist = std::cmp::max(dist_x, dist_y) as u8;
-            if dist == 1 {
-                // Find the player's unit at target_x, target_y and perform attack.
-                if let Some(player_unit) = ctx
-                    .accounts
-                    .player_account
-                    .units
-                    .iter_mut()
-                    .find(|u| u.x == target_x && u.y == target_y)
-                {
-                    npc_unit.perform_attack(player_unit)?;
-                }
-            } else {
-                // Compute the direction in which to move.
-                let dir_x = if npc_unit.x < target_x {
-                    1
-                } else if npc_unit.x > target_x {
-                    -1
-                } else {
-                    0
-                };
-                let dir_y = if npc_unit.y < target_y {
-                    1
-                } else if npc_unit.y > target_y {
-                    -1
-                } else {
-                    0
-                };
-
-                // Compute the new position.
-                let new_x = (npc_unit.x as i16 + dir_x) as u8;
-                let new_y = (npc_unit.y as i16 + dir_y) as u8;
-
-                // Check if the new position is within map bounds and is not occupied by another unit or city.
-                if new_x < 20
-                    && new_y < 20
-                    && !player_units
-                        .iter()
-                        .any(|&(x, y, is_alive)| x == new_x && y == new_y && is_alive)
-                    && !npc_units
-                        .iter()
-                        .any(|&(x, y, is_alive)| x == new_x && y == new_y && is_alive)
-                    && !player_cities.iter().any(|&(x, y)| x == new_x && y == new_y)
-                {
-                    npc_unit.x = new_x;
-                    npc_unit.y = new_y;
-                } else {
-                    msg!(
-                        "NPC unit #{} cannot move to position ({}, {})",
-                        npc_unit.unit_id,
-                        new_x,
-                        new_y
-                    );
-                }
-            }
-        }
-    }
-
-    // Process the production queues of each city for the player
-    let player = ctx.accounts.player_account.player.clone();
-    let game_key = ctx.accounts.game.key().clone();
-    let mut next_unit_id = ctx.accounts.player_account.next_unit_id;
-
+fn process_production_queues(player_account: &mut Player, game_key: Pubkey) -> Result<()> {
     let mut new_units = Vec::new();
-    for city in &mut ctx.accounts.player_account.cities {
+    let mut next_unit_id = player_account.next_unit_id;
+    let player = player_account.player.clone();
+
+    for city in &mut player_account.cities {
         if let Some(item) = city.production_queue.first().cloned() {
             let cost = match item {
-                ProductionItem::Unit(unit_type) => {
-                    // base_production_cost is the sixth item in the tuple returned by get_base_stats
-                    Unit::get_base_stats(unit_type).5
-                }
+                ProductionItem::Unit(unit_type) => Unit::get_base_stats(unit_type).5,
                 ProductionItem::Building(building_type) => {
                     BuildingType::get_base_stats(building_type).0
                 }
@@ -544,8 +396,14 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
                 match item {
                     ProductionItem::Unit(unit_type) => {
                         // Create a new unit and add it to the player's units
-                        let new_unit =
-                            Unit::new(next_unit_id, player, game_key, unit_type, city.x, city.y);
+                        let new_unit = Unit::new(
+                            next_unit_id,
+                            player.clone(),
+                            game_key.clone(),
+                            unit_type,
+                            city.x,
+                            city.y,
+                        );
                         new_units.push(new_unit);
                         next_unit_id += 1;
                     }
@@ -563,12 +421,140 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
             }
         }
     }
-    ctx.accounts.player_account.units.append(&mut new_units);
-    ctx.accounts.player_account.next_unit_id = next_unit_id;
+
+    player_account.units.append(&mut new_units);
+    player_account.next_unit_id = next_unit_id;
+
+    Ok(())
+}
+
+fn process_npc_movements_and_attacks(
+    npc_units: &mut Vec<Unit>,
+    player: &mut Player
+) -> Result<()> {
+
+    let npc_units_count = npc_units.len();
+    for i in 0..npc_units_count {
+        if !npc_units[i].is_alive {
+            continue;
+        }
+
+        let mut min_dist = u16::MAX;
+        let mut closest_target: Option<(u8, u8)> = None;
+
+        // Find the closest player's unit or city to the NPC unit
+        for player_unit in player.units.iter().filter(|u| u.is_alive) {
+            let dist = ((npc_units[i].x as i16 - player_unit.x as i16).pow(2)
+                + (npc_units[i].y as i16 - player_unit.y as i16).pow(2))
+                as u16;
+            if dist < min_dist {
+                min_dist = dist;
+                closest_target = Some((player_unit.x, player_unit.y));
+            }
+        }
+
+        for city in player.cities.iter() {
+            let dist = ((npc_units[i].x as i16 - city.x as i16).pow(2)
+                + (npc_units[i].y as i16 - city.y as i16).pow(2)) as u16;
+            if dist < min_dist {
+                min_dist = dist;
+                closest_target = Some((city.x, city.y));
+            }
+        }
+
+        // If a closest target was found, make decisions for NPC units based on the proximity to this target
+        if let Some((target_x, target_y)) = closest_target {
+            let dist_x = (npc_units[i].x as i16 - target_x as i16).abs();
+            let dist_y = (npc_units[i].y as i16 - target_y as i16).abs();
+            let dist = std::cmp::max(dist_x, dist_y) as u8;
+
+            if dist == 1 {
+                if let Some(player_unit) = player.units
+                    .iter_mut()
+                    .find(|u| u.x == target_x && u.y == target_y && u.is_alive)
+                {
+                    npc_units[i].attack_unit(player_unit)?;
+                } else if let Some(player_city) = player.cities.iter_mut().find(|c| c.x == target_x && c.y == target_y && c.health > 0) {
+                    npc_units[i].attack_city(player_city)?;
+                }
+            } else {
+                let dir_x = if npc_units[i].x < target_x {
+                    1
+                } else if npc_units[i].x > target_x {
+                    -1
+                } else {
+                    0
+                };
+                let dir_y = if npc_units[i].y < target_y {
+                    1
+                } else if npc_units[i].y > target_y {
+                    -1
+                } else {
+                    0
+                };
+
+                let new_x = (npc_units[i].x as i16 + dir_x) as u8;
+                let new_y = (npc_units[i].y as i16 + dir_y) as u8;
+
+                if new_x < MAP_BOUND
+                    && new_y < MAP_BOUND
+                    && !is_occupied(new_x, new_y, &player.units, &npc_units, &player.cities)
+                {
+                    npc_units[i].x = new_x;
+                    npc_units[i].y = new_y;
+                } else {
+                    msg!(
+                        "NPC unit #{} cannot move to position ({}, {})",
+                        npc_units[i].unit_id,
+                        new_x,
+                        new_y
+                    );
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn is_occupied(
+    x: u8,
+    y: u8,
+    player_units: &Vec<Unit>,
+    npc_units: &Vec<Unit>,
+    player_cities: &Vec<City>,
+) -> bool {
+    player_units
+        .iter()
+        .any(|u| u.x == x && u.y == y && u.is_alive)
+        || npc_units.iter().any(|u| u.x == x && u.y == y && u.is_alive)
+        || player_cities.iter().any(|c| c.x == x && c.y == y)
+}
+
+pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
+    // Reset units' movement range
+    reset_units_movement_range(&mut ctx.accounts.player_account.units);
+
+    // Calculate and update player's resources
+    let (gold, food, wood, stone) = calculate_resources(&ctx.accounts.player_account);
+    ctx.accounts
+        .player_account
+        .update_resources(gold, food, wood, stone)?;
+
+        let player_account = &mut ctx.accounts.player_account;
+
+        process_npc_movements_and_attacks(
+            &mut ctx.accounts.npc_account.units,
+            player_account,
+        )?;
+
+    // Process the production queues of each city for the player
+    let game_key = ctx.accounts.game.key().clone();
+    process_production_queues(&mut ctx.accounts.player_account, game_key)?;
 
     // Retain only alive units in the game
     ctx.accounts.player_account.units.retain(|u| u.is_alive);
     ctx.accounts.npc_account.units.retain(|u| u.is_alive);
+    ctx.accounts.player_account.cities.retain(|c| c.health > 0);
 
     ctx.accounts.game.turn += 1;
     Ok(())

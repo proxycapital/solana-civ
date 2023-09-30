@@ -68,7 +68,7 @@ pub enum ProductionItem {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq)]
 pub enum BuildingType {
-    Barracks,        // units ?
+    Barracks,        // defense + units
     Wall,            // defense
     WallMedieval,    // defense
     WallRenaissance, // defense
@@ -119,6 +119,16 @@ pub enum UnitType {
     Musketman,
     Rifleman,
     Tank,
+}
+
+impl Player {
+    pub fn update_resources(&mut self, gold: u32, food: u32, wood: u32, stone: u32) -> Result<()> {
+        self.resources.gold = self.resources.gold.checked_add(gold).unwrap_or(u32::MAX);
+        self.resources.food = self.resources.food.checked_add(food).unwrap_or(u32::MAX);
+        self.resources.wood = self.resources.wood.checked_add(wood).unwrap_or(u32::MAX);
+        self.resources.stone = self.resources.stone.checked_add(stone).unwrap_or(u32::MAX);
+        Ok(())
+    }
 }
 
 impl City {
@@ -291,15 +301,14 @@ impl Unit {
         }
     }
 
-    pub fn perform_attack(&mut self, defender: &mut Unit) -> Result<()> {
+    fn can_attack(&self) -> bool {
+        // only 2 units cannot attack: Settler and Builder
+        !matches!(self.unit_type, UnitType::Settler | UnitType::Builder)
+    }
+
+    pub fn attack_unit(&mut self, defender: &mut Unit) -> Result<()> {
         // Check if the attacker is alive and of attacking type
-        if !self.is_alive
-            || !matches!(
-                self.unit_type,
-                // @todo: add more unit types and move this to a separate function
-                UnitType::Warrior | UnitType::Archer | UnitType::Swordsman
-            )
-        {
+        if !self.is_alive || !self.can_attack() {
             return err!(UnitError::InvalidAttack);
         }
 
@@ -351,6 +360,39 @@ impl Unit {
             msg!("Attacker HP after attack: {}", self.health);
         }
         // after the attack unit cannot move or attack anymore
+        self.movement_range = 0;
+
+        Ok(())
+    }
+
+    pub fn attack_city(&mut self, city: &mut City) -> Result<()> {
+        if !self.is_alive || !self.can_attack() {
+            return err!(UnitError::InvalidAttack);
+        }
+
+        // @todo: consider more complicated defense flow based on Wall types etc, as well as taken_damage for the attacker (in case of Wall in the city)
+        let city_defense = city.attack;
+
+        // Similar damage calculations as attack_unit
+        let e: f32 = std::f32::consts::E;
+        let clock = Clock::get()?;
+        let random_factor = clock.unix_timestamp % 10;
+        let multiplier: f32 = 0.9 + ((random_factor as f32) * 0.0223);
+        let given_damage =
+            (30.0 * e.powf((self.attack as f32 - city_defense as f32) / 25.0) * multiplier) as u8;
+
+        // @todo: add wall mechanics for the taken_damage
+        msg!("Given damage to city: {}", given_damage);
+
+        if u32::from(given_damage) >= city.health {
+            city.health = 0;
+            msg!("City has been destroyed");
+        } else {
+            city.health -= u32::from(given_damage);
+            msg!("City HP after attack: {}", city.health);
+        }
+
+        // After the attack, the unit cannot move or attack anymore.
         self.movement_range = 0;
 
         Ok(())
