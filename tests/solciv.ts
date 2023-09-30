@@ -298,7 +298,7 @@ describe("solciv", () => {
     };
 
     for (let i = 1; i <= 20; i++) {
-    await program.methods.endTurn().accounts(accounts).rpc();
+      await program.methods.endTurn().accounts(accounts).rpc();
     }
     const account = await program.account.game.fetch(gameKey);
     expect(account.turn).greaterThan(1);

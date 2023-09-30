@@ -341,7 +341,7 @@ pub fn attack_unit(ctx: Context<AttackUnit>, attacker_id: u32, defender_id: u32)
         return err!(UnitError::OutOfAttackRange);
     }
 
-    attacker.perform_attack(defender)?;
+    attacker.attack_unit(defender)?;
 
     // Retain only alive units in the game
     ctx.accounts.player_account.units.retain(|u| u.is_alive);
@@ -430,9 +430,9 @@ fn process_production_queues(player_account: &mut Player, game_key: Pubkey) -> R
 
 fn process_npc_movements_and_attacks(
     npc_units: &mut Vec<Unit>,
-    player_units: &mut Vec<Unit>,
-    player_cities: &Vec<City>,
+    player: &mut Player
 ) -> Result<()> {
+
     let npc_units_count = npc_units.len();
     for i in 0..npc_units_count {
         if !npc_units[i].is_alive {
@@ -443,7 +443,7 @@ fn process_npc_movements_and_attacks(
         let mut closest_target: Option<(u8, u8)> = None;
 
         // Find the closest player's unit or city to the NPC unit
-        for player_unit in player_units.iter().filter(|u| u.is_alive) {
+        for player_unit in player.units.iter().filter(|u| u.is_alive) {
             let dist = ((npc_units[i].x as i16 - player_unit.x as i16).pow(2)
                 + (npc_units[i].y as i16 - player_unit.y as i16).pow(2))
                 as u16;
@@ -453,7 +453,7 @@ fn process_npc_movements_and_attacks(
             }
         }
 
-        for city in player_cities {
+        for city in player.cities.iter() {
             let dist = ((npc_units[i].x as i16 - city.x as i16).pow(2)
                 + (npc_units[i].y as i16 - city.y as i16).pow(2)) as u16;
             if dist < min_dist {
@@ -469,11 +469,13 @@ fn process_npc_movements_and_attacks(
             let dist = std::cmp::max(dist_x, dist_y) as u8;
 
             if dist == 1 {
-                if let Some(player_unit) = player_units
+                if let Some(player_unit) = player.units
                     .iter_mut()
                     .find(|u| u.x == target_x && u.y == target_y && u.is_alive)
                 {
-                    npc_units[i].perform_attack(player_unit)?;
+                    npc_units[i].attack_unit(player_unit)?;
+                } else if let Some(player_city) = player.cities.iter_mut().find(|c| c.x == target_x && c.y == target_y && c.health > 0) {
+                    npc_units[i].attack_city(player_city)?;
                 }
             } else {
                 let dir_x = if npc_units[i].x < target_x {
@@ -496,7 +498,7 @@ fn process_npc_movements_and_attacks(
 
                 if new_x < MAP_BOUND
                     && new_y < MAP_BOUND
-                    && !is_occupied(new_x, new_y, &player_units, &npc_units, &player_cities)
+                    && !is_occupied(new_x, new_y, &player.units, &npc_units, &player.cities)
                 {
                     npc_units[i].x = new_x;
                     npc_units[i].y = new_y;
@@ -538,14 +540,12 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
         .player_account
         .update_resources(gold, food, wood, stone)?;
 
-    let player_cities: Vec<_> = ctx.accounts.player_account.cities.iter().cloned().collect();
-    let player_units = &mut ctx.accounts.player_account.units;
+        let player_account = &mut ctx.accounts.player_account;
 
-    process_npc_movements_and_attacks(
-        &mut ctx.accounts.npc_account.units,
-        player_units,
-        &player_cities,
-    )?;
+        process_npc_movements_and_attacks(
+            &mut ctx.accounts.npc_account.units,
+            player_account,
+        )?;
 
     // Process the production queues of each city for the player
     let game_key = ctx.accounts.game.key().clone();
@@ -554,6 +554,7 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
     // Retain only alive units in the game
     ctx.accounts.player_account.units.retain(|u| u.is_alive);
     ctx.accounts.npc_account.units.retain(|u| u.is_alive);
+    ctx.accounts.player_account.cities.retain(|c| c.health > 0);
 
     ctx.accounts.game.turn += 1;
     Ok(())
