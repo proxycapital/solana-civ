@@ -186,7 +186,13 @@ pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32) -> Result
         .player_account
         .cities
         .iter()
-        .any(|city| city.x == x && city.y == y);
+        .any(|city| city.x == x && city.y == y)
+        || ctx
+        .accounts
+        .player_account
+        .tiles
+        .iter()
+        .any(|tile| tile.x == x && tile.y == y);
     if is_occupied {
         return err!(BuildingError::TileOccupied);
     }
