@@ -189,6 +189,31 @@ describe("solciv", () => {
     }
   });
 
+  it("Should not add settler to production queue: not enough of food", async () => {
+    const cityId = 0;
+    const productionItem = { unit: { "0": { settler: {} } } };
+    try {
+      await addToProductionQueue(cityId, productionItem);
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("InsufficientResources");
+      const city = (await program.account.player.fetch(playerKey)).cities[0];
+      expect(city.productionQueue.length).equal(1);
+      expect(city.productionQueue[0]).deep.equal({ building: { "0": { forge: {} } } });
+    }
+  });
+
+  it("Should not add swordsman to production queue: not enough of iron", async () => {
+    const cityId = 0;
+    const productionItem = { unit: { "0": { swordsman: {} } } };
+    try {
+      await addToProductionQueue(cityId, productionItem);
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("InsufficientResources");
+    }
+  });
+
   it("Should add 4 more items to production queue", async () => {
     const cityId = 0;
     const items = [
@@ -266,7 +291,7 @@ describe("solciv", () => {
     const tx = await program.methods.upgradeTile(x, y, unit_id).accounts(accounts).rpc();
 
     const account = await program.account.player.fetch(playerKey);
-    expect(account.tiles).deep.equal([{ tileType: { timberCamp: {} }, x, y }]);
+    expect(account.tiles).deep.equal([{ tileType: { lumberMill: {} }, x, y }]);
   });
 
   it("Should not upgrade land tile with a Builder that was already consumed", async () => {
@@ -288,7 +313,7 @@ describe("solciv", () => {
     const account = await program.account.player.fetch(playerKey);
   });
 
-  it("End 1st turn", async () => {
+  it("End 20 turns", async () => {
     const prevPlayerAccount = await program.account.player.fetch(playerKey);
     const accounts = {
       game: gameKey,
@@ -304,12 +329,23 @@ describe("solciv", () => {
     expect(account.turn).greaterThan(1);
     const playerAccount = await program.account.player.fetch(playerKey);
     expect(playerAccount.resources.gold).greaterThan(prevPlayerAccount.resources.gold);
-    expect(playerAccount.resources.wood).greaterThan(prevPlayerAccount.resources.wood); // we have upgraded forest tile to TimberCamp
+    expect(playerAccount.resources.wood).greaterThan(prevPlayerAccount.resources.wood); // we have upgraded forest tile to LumberMill
     const npcAccount = await program.account.npc.fetch(npcKey);
     console.log(playerAccount.cities[0]);
     console.log(playerAccount.units);
     console.log(playerAccount.resources);
     console.log(npcAccount.units);
+  });
+
+  it("Should add Settler to production queue", async () => {
+    const cityId = 0;
+    const productionItem = { unit: { "0": { settler: {} } } };
+    await addToProductionQueue(cityId, productionItem);
+    const player = await program.account.player.fetch(playerKey);
+    const city = player.cities[cityId];
+    expect(city.productionQueue[3]).deep.equal(productionItem);
+    expect(player.resources.food).equal(0);
+    console.log(player.resources);
   });
 
   it("Should close game", async () => {

@@ -61,4 +61,10 @@ pub enum CityError {
 
     #[msg("Counstruction is already in progress")]
     AlreadyQueued,
+
+    #[msg("Not enough resources")]
+    InsufficientResources,
+
+    #[msg("Invalid production item")]
+    InvalidItem,
 }
