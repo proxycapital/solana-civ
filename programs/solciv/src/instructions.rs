@@ -98,6 +98,25 @@ pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
     ctx.accounts.npc_account.next_unit_id = 0;
     ctx.accounts.game.npc = ctx.accounts.npc_account.key().clone();
 
+    ctx.accounts.npc_account.cities = vec![
+        City::new(
+            0,
+            ctx.accounts.npc_account.player.clone(),
+            ctx.accounts.game.key().clone(),
+            2,
+            17,
+            "Barbarian Village".to_string(),
+        ),
+        City::new(
+            1,
+            ctx.accounts.npc_account.player.clone(),
+            ctx.accounts.game.key().clone(),
+            18,
+            18,
+            "Barbarian Village".to_string(),
+        ),
+    ];
+
     // Initialize units for the NPC.
     ctx.accounts.npc_account.units = vec![
         Unit::new(
@@ -105,11 +124,12 @@ pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
             ctx.accounts.npc_account.key().clone(),
             ctx.accounts.game.key().clone(),
             UnitType::Warrior,
-            18,
+            17,
             18,
         ),
     ];
     ctx.accounts.npc_account.next_unit_id = 1;
+    ctx.accounts.npc_account.next_city_id = 2;
 
     msg!("NPC created!");
 
@@ -610,8 +630,41 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
 
     // Retain only alive units in the game
     ctx.accounts.player_account.units.retain(|u| u.is_alive);
-    ctx.accounts.npc_account.units.retain(|u| u.is_alive);
     ctx.accounts.player_account.cities.retain(|c| c.health > 0);
+    ctx.accounts.npc_account.units.retain(|u| u.is_alive);
+    ctx.accounts.npc_account.cities.retain(|c| c.health > 0);
+
+    // spawn new NPC units every 7 turns
+    if ctx.accounts.game.turn % 7 == 0 {
+        let clock = Clock::get()?;
+        let random_factor = clock.unix_timestamp % 10;
+
+        // Temporary vector to store new units.
+        let mut new_units = Vec::new();
+        let mut next_npc_id = ctx.accounts.npc_account.next_unit_id;
+
+        for city in &ctx.accounts.npc_account.cities {
+            // 0-4 Warrior, 5-9 Archer
+            let unit_type = if random_factor < 5 {
+                UnitType::Warrior
+            } else {
+                UnitType::Archer
+            };
+            
+            let new_unit = Unit::new(
+                next_npc_id,
+                ctx.accounts.npc_account.player.clone(),
+                ctx.accounts.game.key().clone(),
+                unit_type,
+                city.x,
+                city.y,
+            );
+            new_units.push(new_unit);
+            next_npc_id += 1;
+        }
+        ctx.accounts.npc_account.units.append(&mut new_units);
+        ctx.accounts.npc_account.next_unit_id = next_npc_id;
+    }
 
     ctx.accounts.game.turn += 1;
     Ok(())
@@ -677,6 +730,7 @@ pub struct InitializeNpc<'info> {
         bump,
         payer = player,
         space = std::mem::size_of::<Npc>() +
+            4 + (20 * MAX_CITIES as usize) +
             std::mem::size_of::<Unit>() * MAX_UNITS as usize +
             std::mem::size_of::<City>() * MAX_CITIES as usize + 8)
     ]

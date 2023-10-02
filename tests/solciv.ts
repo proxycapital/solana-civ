@@ -85,9 +85,10 @@ describe("solciv", () => {
     const tx = await program.methods.initializeNpc().accounts(accounts).rpc();
     const account = await program.account.npc.fetch(npcKey);
 
-    expect(account.units.length).equal(3);
-    expect(account.cities.length).equal(0);
-    expect(account.nextUnitId).equal(3);
+    expect(account.units.length).equal(1);
+    expect(account.cities.length).equal(2);
+    expect(account.nextUnitId).equal(1);
+    expect(account.nextCityId).equal(2);
   });
 
   it("Should attack barbarian", async () => {
@@ -345,6 +346,11 @@ describe("solciv", () => {
     expect(city.productionQueue[3]).deep.equal(productionItem);
     expect(player.resources.food).equal(0);
     console.log(player.resources);
+  });
+
+  it("Should check if barbarians were spawned", async () => {
+    const npcAccount = await program.account.npc.fetch(npcKey);
+    expect(npcAccount.units.length).greaterThanOrEqual(4);
   });
 
   it("Should close game", async () => {
