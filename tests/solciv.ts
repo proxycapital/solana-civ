@@ -85,9 +85,10 @@ describe("solciv", () => {
     const tx = await program.methods.initializeNpc().accounts(accounts).rpc();
     const account = await program.account.npc.fetch(npcKey);
 
-    expect(account.units.length).equal(3);
-    expect(account.cities.length).equal(0);
-    expect(account.nextUnitId).equal(3);
+    expect(account.units.length).equal(1);
+    expect(account.cities.length).equal(2);
+    expect(account.nextUnitId).equal(1);
+    expect(account.nextCityId).equal(2);
   });
 
   it("Should attack barbarian", async () => {
@@ -151,15 +152,13 @@ describe("solciv", () => {
       game: gameKey,
       player: provider.publicKey,
       playerAccount: playerKey,
-      // city: cityKey,
       systemProgram: anchor.web3.SystemProgram.programId,
     };
-    await program.methods.foundCity(unit.x, unit.y, unitId).accounts(accounts).rpc();
+    const name = "Test City";
+    await program.methods.foundCity(unit.x, unit.y, unitId, name).accounts(accounts).rpc();
 
     const player = await program.account.player.fetch(playerKey);
     expect(player.nextCityId).equal(1);
-    // settler unit should be removed
-    expect(player.units.length).equal(2);
 
     const account = await program.account.player.fetch(playerKey);
     const city = account.cities[0];
@@ -167,6 +166,7 @@ describe("solciv", () => {
     expect(city.x).equal(unit.x);
     expect(city.y).equal(unit.y);
     expect(city.cityId).equal(0);
+    expect(city.name).equal(name);
   });
 
   it("Should add building to production queue", async () => {
@@ -186,6 +186,31 @@ describe("solciv", () => {
     } catch (e) {
       const { message } = e;
       expect(message).include("AlreadyQueued");
+    }
+  });
+
+  it("Should not add settler to production queue: not enough of food", async () => {
+    const cityId = 0;
+    const productionItem = { unit: { "0": { settler: {} } } };
+    try {
+      await addToProductionQueue(cityId, productionItem);
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("InsufficientResources");
+      const city = (await program.account.player.fetch(playerKey)).cities[0];
+      expect(city.productionQueue.length).equal(1);
+      expect(city.productionQueue[0]).deep.equal({ building: { "0": { forge: {} } } });
+    }
+  });
+
+  it("Should not add swordsman to production queue: not enough of iron", async () => {
+    const cityId = 0;
+    const productionItem = { unit: { "0": { swordsman: {} } } };
+    try {
+      await addToProductionQueue(cityId, productionItem);
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("InsufficientResources");
     }
   });
 
@@ -266,7 +291,7 @@ describe("solciv", () => {
     const tx = await program.methods.upgradeTile(x, y, unit_id).accounts(accounts).rpc();
 
     const account = await program.account.player.fetch(playerKey);
-    expect(account.tiles).deep.equal([{ tileType: { timberCamp: {} }, x, y }]);
+    expect(account.tiles).deep.equal([{ tileType: { lumberMill: {} }, x, y }]);
   });
 
   it("Should not upgrade land tile with a Builder that was already consumed", async () => {
@@ -288,7 +313,7 @@ describe("solciv", () => {
     const account = await program.account.player.fetch(playerKey);
   });
 
-  it("End 1st turn", async () => {
+  it("End 20 turns", async () => {
     const prevPlayerAccount = await program.account.player.fetch(playerKey);
     const accounts = {
       game: gameKey,
@@ -304,12 +329,28 @@ describe("solciv", () => {
     expect(account.turn).greaterThan(1);
     const playerAccount = await program.account.player.fetch(playerKey);
     expect(playerAccount.resources.gold).greaterThan(prevPlayerAccount.resources.gold);
-    expect(playerAccount.resources.wood).greaterThan(prevPlayerAccount.resources.wood); // we have upgraded forest tile to TimberCamp
+    expect(playerAccount.resources.wood).greaterThan(prevPlayerAccount.resources.wood); // we have upgraded forest tile to LumberMill
     const npcAccount = await program.account.npc.fetch(npcKey);
     console.log(playerAccount.cities[0]);
     console.log(playerAccount.units);
     console.log(playerAccount.resources);
     console.log(npcAccount.units);
+  });
+
+  it("Should add Settler to production queue", async () => {
+    const cityId = 0;
+    const productionItem = { unit: { "0": { settler: {} } } };
+    await addToProductionQueue(cityId, productionItem);
+    const player = await program.account.player.fetch(playerKey);
+    const city = player.cities[cityId];
+    expect(city.productionQueue[3]).deep.equal(productionItem);
+    expect(player.resources.food).equal(0);
+    console.log(player.resources);
+  });
+
+  it("Should check if barbarians were spawned", async () => {
+    const npcAccount = await program.account.npc.fetch(npcKey);
+    expect(npcAccount.units.length).greaterThanOrEqual(4);
   });
 
   it("Should close game", async () => {

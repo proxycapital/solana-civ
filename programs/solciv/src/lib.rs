@@ -28,8 +28,8 @@ pub mod solciv {
         instructions::move_unit(ctx, unit_id, x, y)
     }
 
-    pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32) -> Result<()> {
-        instructions::found_city(ctx, x, y, unit_id)
+    pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: String) -> Result<()> {
+        instructions::found_city(ctx, x, y, unit_id, name)
     }
 
     pub fn add_to_production_queue(

@@ -13,6 +13,8 @@ pub fn initialize_game(ctx: Context<InitializeGame>, map: [u8; 400]) -> Result<(
     ctx.accounts.game.player = ctx.accounts.player.key().clone();
     ctx.accounts.game.turn = 1;
     ctx.accounts.game.map = map;
+    ctx.accounts.game.defeat = false;
+    ctx.accounts.game.victory = false;
 
     msg!("Game created!");
 
@@ -59,8 +61,32 @@ pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
             2,
             3,
         ),
+        Unit::new(
+            3,
+            ctx.accounts.player.key().clone(),
+            ctx.accounts.game.key().clone(),
+            UnitType::Builder,
+            3,
+            3,
+        ),
+        Unit::new(
+            4,
+            ctx.accounts.player.key().clone(),
+            ctx.accounts.game.key().clone(),
+            UnitType::Builder,
+            3,
+            4,
+        ),
+        Unit::new(
+            5,
+            ctx.accounts.player.key().clone(),
+            ctx.accounts.game.key().clone(),
+            UnitType::Builder,
+            3,
+            5,
+        ),
     ];
-    ctx.accounts.player_account.next_unit_id = 3;
+    ctx.accounts.player_account.next_unit_id = 6;
 
     msg!("Player created!");
 
@@ -74,6 +100,25 @@ pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
     ctx.accounts.npc_account.next_unit_id = 0;
     ctx.accounts.game.npc = ctx.accounts.npc_account.key().clone();
 
+    ctx.accounts.npc_account.cities = vec![
+        City::new(
+            0,
+            ctx.accounts.npc_account.player.clone(),
+            ctx.accounts.game.key().clone(),
+            2,
+            17,
+            "Barbarian Village".to_string(),
+        ),
+        City::new(
+            1,
+            ctx.accounts.npc_account.player.clone(),
+            ctx.accounts.game.key().clone(),
+            18,
+            18,
+            "Barbarian Village".to_string(),
+        ),
+    ];
+
     // Initialize units for the NPC.
     ctx.accounts.npc_account.units = vec![
         Unit::new(
@@ -81,27 +126,12 @@ pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
             ctx.accounts.npc_account.key().clone(),
             ctx.accounts.game.key().clone(),
             UnitType::Warrior,
-            0,
-            0,
-        ),
-        Unit::new(
-            1,
-            ctx.accounts.npc_account.key().clone(),
-            ctx.accounts.game.key().clone(),
-            UnitType::Warrior,
-            0,
-            1,
-        ),
-        Unit::new(
-            2,
-            ctx.accounts.npc_account.key().clone(),
-            ctx.accounts.game.key().clone(),
-            UnitType::Warrior,
-            3,
-            4,
+            17,
+            18,
         ),
     ];
-    ctx.accounts.npc_account.next_unit_id = 3;
+    ctx.accounts.npc_account.next_unit_id = 1;
+    ctx.accounts.npc_account.next_city_id = 2;
 
     msg!("NPC created!");
 
@@ -165,7 +195,7 @@ pub fn move_unit(ctx: Context<MoveUnit>, unit_id: u32, x: u8, y: u8) -> Result<(
     Ok(())
 }
 
-pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32) -> Result<()> {
+pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: String) -> Result<()> {
     // Validate if the unit with `unit_id` is a settler and is at `x` and `y`.
     let unit_idx = ctx
         .accounts
@@ -206,6 +236,7 @@ pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32) -> Result
         ctx.accounts.game.key(),
         x,
         y,
+        name,
     );
 
     ctx.accounts.player_account.cities.push(new_city);
@@ -246,7 +277,7 @@ pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Re
     // Check if the tile type is upgradeable and the tile is not occupied by a City or another Tile.
     let map_idx = (y as usize) * 20 + x as usize;
     match ctx.accounts.game.map[map_idx] {
-        2 | 5 | 6 => {} // allowable tile types
+        1 | 2 | 5 | 6 => {} // allowable tile types
         _ => return err!(TileError::NotUpgradeable),
     }
 
@@ -268,9 +299,10 @@ pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Re
 
     // Initialize the new Tile and push it to player_account tiles vector.
     let tile_type = match ctx.accounts.game.map[map_idx] {
-        2 => TileType::TimberCamp,
+        1 => TileType::IronMine,
+        2 => TileType::LumberMill,
         5 => TileType::StoneQuarry,
-        6 => TileType::CornField,
+        6 => TileType::Farm,
         // we've already checked the tile type above, if there was no match, we would have returned an error NotUpgradeable
         _ => unreachable!(),
     };
@@ -294,11 +326,11 @@ pub fn add_to_production_queue(
     city_id: u32,
     item: ProductionItem,
 ) -> Result<()> {
-    let city = ctx
-        .accounts
-        .player_account
+    let player_account = &mut ctx.accounts.player_account;
+
+    let city = player_account
         .cities
-        .iter_mut()
+        .iter()
         .find(|city| city.city_id == city_id)
         .ok_or(CityError::CityNotFound)?;
 
@@ -306,7 +338,55 @@ pub fn add_to_production_queue(
         return err!(CityError::QueueFull);
     }
 
-    city.add_to_production_queue(item)?;
+    let total_cost = match &item {
+        ProductionItem::Building(building_type) => {
+            if city.buildings.contains(building_type) {
+                return err!(CityError::BuildingAlreadyExists);
+            }
+            if city.production_queue.contains(&item) {
+                return err!(CityError::AlreadyQueued);
+            }
+            0 // No cost for building types
+        }
+        ProductionItem::Unit(unit_type) => {
+            match unit_type {
+                UnitType::Settler => {
+                    let settlers_count = player_account.cities.len() as u32
+                        + player_account
+                            .units
+                            .iter()
+                            .filter(|unit| matches!(unit.unit_type, UnitType::Settler))
+                            .count() as u32;
+                    settlers_count * Unit::get_resource_cost(*unit_type)
+                }
+                UnitType::Swordsman => Unit::get_resource_cost(*unit_type),
+                _ => 0, // No resource cost for other unit types
+            }
+        }
+    };
+
+    // Perform the necessary deductions
+    if total_cost > 0 {
+        let resource_type = match &item {
+            ProductionItem::Unit(UnitType::Settler) => &mut player_account.resources.food,
+            ProductionItem::Unit(UnitType::Swordsman) => &mut player_account.resources.iron,
+            // can this really happen?
+            _ => return err!(CityError::InvalidItem),
+        };
+
+        if *resource_type < total_cost {
+            return err!(CityError::InsufficientResources);
+        }
+        *resource_type -= total_cost;
+    }
+
+    let city = player_account
+        .cities
+        .iter_mut()
+        .find(|city| city.city_id == city_id)
+        .ok_or(CityError::CityNotFound)?;
+
+    city.production_queue.push(item);
 
     Ok(())
 }
@@ -356,10 +436,10 @@ fn reset_units_movement_range(units: &mut [Unit]) {
     }
 }
 
-fn calculate_resources(player_account: &Player) -> (u32, u32, u32, u32) {
+fn calculate_resources(player_account: &Player) -> (u32, u32, u32, u32, u32) {
     // Calculate resources yielded by cities and tiles.
     // This function will return a tuple (gold, food, wood, stone).
-    let mut resources = (0, 0, 0, 0);
+    let mut resources = (0, 0, 0, 0, 0);
 
     for city in &player_account.cities {
         resources.0 += city.gold_yield;
@@ -368,9 +448,10 @@ fn calculate_resources(player_account: &Player) -> (u32, u32, u32, u32) {
 
     for tile in &player_account.tiles {
         match tile.tile_type {
-            TileType::TimberCamp => resources.2 += 2,
+            TileType::LumberMill => resources.2 += 2,
             TileType::StoneQuarry => resources.3 += 2,
-            TileType::CornField => resources.1 += 2,
+            TileType::Farm => resources.1 += 2,
+            TileType::IronMine => resources.4 += 2,
         }
     }
 
@@ -428,11 +509,7 @@ fn process_production_queues(player_account: &mut Player, game_key: Pubkey) -> R
     Ok(())
 }
 
-fn process_npc_movements_and_attacks(
-    npc_units: &mut Vec<Unit>,
-    player: &mut Player
-) -> Result<()> {
-
+fn process_npc_movements_and_attacks(npc_units: &mut Vec<Unit>, player: &mut Player) -> Result<()> {
     let npc_units_count = npc_units.len();
     for i in 0..npc_units_count {
         if !npc_units[i].is_alive {
@@ -469,12 +546,17 @@ fn process_npc_movements_and_attacks(
             let dist = std::cmp::max(dist_x, dist_y) as u8;
 
             if dist == 1 {
-                if let Some(player_unit) = player.units
+                if let Some(player_unit) = player
+                    .units
                     .iter_mut()
                     .find(|u| u.x == target_x && u.y == target_y && u.is_alive)
                 {
                     npc_units[i].attack_unit(player_unit)?;
-                } else if let Some(player_city) = player.cities.iter_mut().find(|c| c.x == target_x && c.y == target_y && c.health > 0) {
+                } else if let Some(player_city) = player
+                    .cities
+                    .iter_mut()
+                    .find(|c| c.x == target_x && c.y == target_y && c.health > 0)
+                {
                     npc_units[i].attack_city(player_city)?;
                 }
             } else {
@@ -531,21 +613,22 @@ fn is_occupied(
 }
 
 pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
+    // check if the game is over via defeat or victory
+    if ctx.accounts.game.defeat || ctx.accounts.game.victory {
+        return Ok(());
+    }
     // Reset units' movement range
     reset_units_movement_range(&mut ctx.accounts.player_account.units);
 
     // Calculate and update player's resources
-    let (gold, food, wood, stone) = calculate_resources(&ctx.accounts.player_account);
+    let (gold, food, wood, stone, iron) = calculate_resources(&ctx.accounts.player_account);
     ctx.accounts
         .player_account
-        .update_resources(gold, food, wood, stone)?;
+        .update_resources(gold, food, wood, stone, iron)?;
 
-        let player_account = &mut ctx.accounts.player_account;
+    let player_account = &mut ctx.accounts.player_account;
 
-        process_npc_movements_and_attacks(
-            &mut ctx.accounts.npc_account.units,
-            player_account,
-        )?;
+    process_npc_movements_and_attacks(&mut ctx.accounts.npc_account.units, player_account)?;
 
     // Process the production queues of each city for the player
     let game_key = ctx.accounts.game.key().clone();
@@ -553,8 +636,47 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
 
     // Retain only alive units in the game
     ctx.accounts.player_account.units.retain(|u| u.is_alive);
-    ctx.accounts.npc_account.units.retain(|u| u.is_alive);
     ctx.accounts.player_account.cities.retain(|c| c.health > 0);
+    ctx.accounts.npc_account.units.retain(|u| u.is_alive);
+    ctx.accounts.npc_account.cities.retain(|c| c.health > 0);
+
+    // spawn new NPC units every 7 turns
+    if ctx.accounts.game.turn % 7 == 0 {
+        let clock = Clock::get()?;
+        let random_factor = clock.unix_timestamp % 10;
+
+        // Temporary vector to store new units.
+        let mut new_units = Vec::new();
+        let mut next_npc_id = ctx.accounts.npc_account.next_unit_id;
+
+        for city in &ctx.accounts.npc_account.cities {
+            // 0-4 Warrior, 5-9 Archer
+            let unit_type = if random_factor < 5 {
+                UnitType::Warrior
+            } else {
+                UnitType::Archer
+            };
+            
+            let new_unit = Unit::new(
+                next_npc_id,
+                ctx.accounts.npc_account.player.clone(),
+                ctx.accounts.game.key().clone(),
+                unit_type,
+                city.x,
+                city.y,
+            );
+            new_units.push(new_unit);
+            next_npc_id += 1;
+        }
+        ctx.accounts.npc_account.units.append(&mut new_units);
+        ctx.accounts.npc_account.next_unit_id = next_npc_id;
+    }
+    // if player has no units and no cities set game defeat to true
+    if ctx.accounts.player_account.units.is_empty() && ctx.accounts.player_account.cities.is_empty() {
+        ctx.accounts.game.defeat = true;
+    } else if ctx.accounts.npc_account.units.is_empty() && ctx.accounts.npc_account.cities.is_empty() {
+        ctx.accounts.game.victory = true;
+    }
 
     ctx.accounts.game.turn += 1;
     Ok(())
@@ -593,6 +715,7 @@ pub struct InitializePlayer<'info> {
         bump,
         payer = player,
         space = std::mem::size_of::<Player>() +
+            4 + (15 * MAX_CITIES as usize) +
             std::mem::size_of::<Unit>() * MAX_UNITS as usize +
             std::mem::size_of::<City>() * MAX_CITIES as usize +
             std::mem::size_of::<Tile>() * MAX_UPGRADED_TILES as usize +
@@ -619,6 +742,7 @@ pub struct InitializeNpc<'info> {
         bump,
         payer = player,
         space = std::mem::size_of::<Npc>() +
+            4 + (20 * MAX_CITIES as usize) +
             std::mem::size_of::<Unit>() * MAX_UNITS as usize +
             std::mem::size_of::<City>() * MAX_CITIES as usize + 8)
     ]

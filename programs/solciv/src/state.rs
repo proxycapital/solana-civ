@@ -6,6 +6,8 @@ pub struct Game {
     pub player: Pubkey,
     pub npc: Pubkey,
     pub turn: u32,
+    pub defeat: bool,
+    pub victory: bool,
     pub map: [u8; 400],
 }
 
@@ -44,6 +46,7 @@ pub struct Resources {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct City {
     pub city_id: u32,
+    pub name: String,
     pub player: Pubkey,
     pub game: Pubkey,
     pub x: u8,
@@ -122,19 +125,21 @@ pub enum UnitType {
 }
 
 impl Player {
-    pub fn update_resources(&mut self, gold: u32, food: u32, wood: u32, stone: u32) -> Result<()> {
+    pub fn update_resources(&mut self, gold: u32, food: u32, wood: u32, stone: u32, iron: u32) -> Result<()> {
         self.resources.gold = self.resources.gold.checked_add(gold).unwrap_or(u32::MAX);
         self.resources.food = self.resources.food.checked_add(food).unwrap_or(u32::MAX);
         self.resources.wood = self.resources.wood.checked_add(wood).unwrap_or(u32::MAX);
         self.resources.stone = self.resources.stone.checked_add(stone).unwrap_or(u32::MAX);
+        self.resources.iron = self.resources.iron.checked_add(iron).unwrap_or(u32::MAX);
         Ok(())
     }
 }
 
 impl City {
-    pub fn new(city_id: u32, player: Pubkey, game: Pubkey, x: u8, y: u8) -> Self {
+    pub fn new(city_id: u32, player: Pubkey, game: Pubkey, x: u8, y: u8, name: String) -> Self {
         Self {
             city_id,
+            name,
             player,
             game,
             x,
@@ -152,42 +157,20 @@ impl City {
         }
     }
 
-    pub fn add_to_production_queue(&mut self, item: ProductionItem) -> Result<()> {
-        match item {
-            ProductionItem::Building(building_type) => {
-                if self.buildings.contains(&building_type) {
-                    return err!(CityError::BuildingAlreadyExists);
-                }
-                if self.production_queue.contains(&item) {
-                    return err!(CityError::AlreadyQueued);
-                }
-            }
-            _ => (), // Nothing extra for units
-        }
-
-        self.production_queue.push(item);
-
-        Ok(())
-    }
-
     pub fn construct_building(&mut self, building_type: BuildingType) -> Result<()> {
         match building_type {
             BuildingType::Barracks => self.attack += 2,
             BuildingType::Wall => {
-                self.attack += 2;
-                self.health += 25;
+                self.attack += 5;
             }
             BuildingType::WallMedieval => {
-                self.attack += 4;
-                self.health += 25;
+                self.attack += 5;
             }
             BuildingType::WallRenaissance => {
-                self.attack += 4;
-                self.health += 25;
+                self.attack += 10;
             }
             BuildingType::WallIndustrial => {
-                self.attack += 4;
-                self.health += 25;
+                self.attack += 10;
             }
             BuildingType::Library => self.science_yield += 2,
             BuildingType::School => self.science_yield += 3,
@@ -215,25 +198,44 @@ impl BuildingType {
     /// returns `(base_production_cost, base_gold_cost, required_building_type, required_technology_type)`
     pub fn get_base_stats(building_type: BuildingType) -> (u32, u32) {
         match building_type {
-            BuildingType::Barracks => (20, 20),
-            BuildingType::Wall => (20, 20),
-            BuildingType::WallMedieval => (20, 20),
-            BuildingType::WallRenaissance => (20, 20),
-            BuildingType::WallIndustrial => (20, 20),
-            BuildingType::Library => (20, 20),
-            BuildingType::School => (20, 20),
-            BuildingType::University => (20, 20),
-            BuildingType::Observatory => (20, 20),
-            BuildingType::Forge => (20, 20),
-            BuildingType::Factory => (20, 20),
-            BuildingType::EnergyPlant => (20, 20),
-            BuildingType::Market => (20, 20),
-            BuildingType::Bank => (20, 20),
-            BuildingType::StockExchange => (20, 20),
-            BuildingType::Granary => (20, 20),
-            BuildingType::Mill => (20, 20),
-            BuildingType::Bakery => (20, 20),
-            BuildingType::Supermarket => (20, 20),
+            // BuildingType::Barracks => (20, 20),
+            // BuildingType::Wall => (20, 20),
+            // BuildingType::WallMedieval => (20, 20),
+            // BuildingType::WallRenaissance => (20, 20),
+            // BuildingType::WallIndustrial => (20, 20),
+            // BuildingType::Library => (20, 20),
+            // BuildingType::School => (20, 20),
+            // BuildingType::University => (20, 20),
+            // BuildingType::Observatory => (20, 20),
+            // BuildingType::Forge => (20, 20),
+            // BuildingType::Factory => (20, 20),
+            // BuildingType::EnergyPlant => (20, 20),
+            // BuildingType::Market => (20, 20),
+            // BuildingType::Bank => (20, 20),
+            // BuildingType::StockExchange => (20, 20),
+            // BuildingType::Granary => (20, 20),
+            // BuildingType::Mill => (20, 20),
+            // BuildingType::Bakery => (20, 20),
+            // BuildingType::Supermarket => (20, 20),
+            BuildingType::Barracks => (4, 4),
+            BuildingType::Wall => (4, 4),
+            BuildingType::WallMedieval => (4, 4),
+            BuildingType::WallRenaissance => (4, 4),
+            BuildingType::WallIndustrial => (4, 4),
+            BuildingType::Library => (4, 4),
+            BuildingType::School => (4, 4),
+            BuildingType::University => (4, 4),
+            BuildingType::Observatory => (4, 4),
+            BuildingType::Forge => (4, 4),
+            BuildingType::Factory => (4, 4),
+            BuildingType::EnergyPlant => (4, 4),
+            BuildingType::Market => (4, 4),
+            BuildingType::Bank => (4, 4),
+            BuildingType::StockExchange => (4, 4),
+            BuildingType::Granary => (4, 4),
+            BuildingType::Mill => (4, 4),
+            BuildingType::Bakery => (4, 4),
+            BuildingType::Supermarket => (4, 4),
         }
     }
 }
@@ -289,9 +291,18 @@ impl Unit {
     /// `(is_ranged, health, attack, movement_range, remaining_actions, base_production_cost, base_gold_cost, base_resource_cost)`.
     pub fn get_base_stats(unit_type: UnitType) -> (bool, u8, u8, u8, u8, u32, u32, u32) {
         match unit_type {
-            UnitType::Settler => (false, 100, 0, 2, 1, 0, 0, 100),
-            UnitType::Builder => (false, 100, 0, 2, 1, 20, 200, 0),
-            UnitType::Warrior => (false, 100, 8, 2, 0, 20, 240, 0),
+            // UnitType::Settler => (false, 100, 0, 2, 1, 20, 0, 40),
+            // UnitType::Builder => (false, 100, 0, 2, 1, 20, 200, 0),
+            // UnitType::Warrior => (false, 100, 8, 2, 0, 20, 240, 0),
+            // UnitType::Archer => (true, 100, 6, 2, 0, 20, 240, 0),
+            // UnitType::Swordsman => (false, 100, 14, 2, 0, 30, 240, 10),
+            // UnitType::Crossbowman => (true, 100, 24, 2, 0, 40, 300, 0),
+            // UnitType::Musketman => (true, 100, 32, 2, 0, 50, 360, 0),
+            // UnitType::Rifleman => (true, 100, 40, 3, 0, 60, 420, 0),
+            // UnitType::Tank => (true, 100, 50, 4, 0, 80, 500, 0),
+            UnitType::Settler => (false, 100, 0, 2, 1, 4, 0, 40),
+            UnitType::Builder => (false, 100, 0, 2, 1, 2, 200, 0),
+            UnitType::Warrior => (false, 100, 8, 2, 0, 2, 240, 0),
             UnitType::Archer => (true, 100, 6, 2, 0, 20, 240, 0),
             UnitType::Swordsman => (false, 100, 14, 2, 0, 30, 240, 10),
             UnitType::Crossbowman => (true, 100, 24, 2, 0, 40, 300, 0),
@@ -299,6 +310,18 @@ impl Unit {
             UnitType::Rifleman => (true, 100, 40, 3, 0, 60, 420, 0),
             UnitType::Tank => (true, 100, 50, 4, 0, 80, 500, 0),
         }
+    }
+
+    pub fn get_base_cost(unit_type: UnitType) -> u32 {
+        Unit::get_base_stats(unit_type).5
+    }
+
+    pub fn get_gold_cost(unit_type: UnitType) -> u32 {
+        Unit::get_base_stats(unit_type).6
+    }
+
+    pub fn get_resource_cost(unit_type: UnitType) -> u32 {
+        Unit::get_base_stats(unit_type).7
     }
 
     fn can_attack(&self) -> bool {
@@ -378,11 +401,13 @@ impl Unit {
         let clock = Clock::get()?;
         let random_factor = clock.unix_timestamp % 10;
         let multiplier: f32 = 0.9 + ((random_factor as f32) * 0.0223);
+        let taken_damage_multiplier: f32 = 1.0 / multiplier;
         let given_damage =
-            (30.0 * e.powf((self.attack as f32 - city_defense as f32) / 25.0) * multiplier) as u8;
+            (15.0 * e.powf((self.attack as f32 - city_defense as f32) / 25.0) * multiplier) as u8;
+        let taken_damage = (15.0 * e.powf((city_defense as f32 - self.attack as f32) / 25.0) * taken_damage_multiplier) as u8;
 
-        // @todo: add wall mechanics for the taken_damage
-        msg!("Given damage to city: {}", given_damage);
+        msg!("Given damage to the city: {}", given_damage);
+        msg!("Taken damage from the city: {}", given_damage);
 
         if u32::from(given_damage) >= city.health {
             city.health = 0;
@@ -390,6 +415,15 @@ impl Unit {
         } else {
             city.health -= u32::from(given_damage);
             msg!("City HP after attack: {}", city.health);
+        }
+
+        if taken_damage >= self.health {
+            self.is_alive = false;
+            self.health = 0;
+            msg!("Attacker is dead");
+        } else {
+            self.health -= taken_damage;
+            msg!("Attacker HP after attack: {}", self.health);
         }
 
         // After the attack, the unit cannot move or attack anymore.
@@ -408,9 +442,10 @@ pub struct Tile {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq)]
 pub enum TileType {
-    TimberCamp,
+    LumberMill,
     StoneQuarry,
-    CornField,
+    Farm,
+    IronMine,
 }
 
 impl Tile {
