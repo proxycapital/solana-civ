@@ -61,32 +61,8 @@ pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
             2,
             3,
         ),
-        Unit::new(
-            3,
-            ctx.accounts.player.key().clone(),
-            ctx.accounts.game.key().clone(),
-            UnitType::Builder,
-            3,
-            3,
-        ),
-        Unit::new(
-            4,
-            ctx.accounts.player.key().clone(),
-            ctx.accounts.game.key().clone(),
-            UnitType::Builder,
-            3,
-            4,
-        ),
-        Unit::new(
-            5,
-            ctx.accounts.player.key().clone(),
-            ctx.accounts.game.key().clone(),
-            UnitType::Builder,
-            3,
-            5,
-        ),
     ];
-    ctx.accounts.player_account.next_unit_id = 6;
+    ctx.accounts.player_account.next_unit_id = 3;
 
     msg!("Player created!");
 
@@ -113,8 +89,8 @@ pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
             1,
             ctx.accounts.npc_account.player.clone(),
             ctx.accounts.game.key().clone(),
-            18,
-            18,
+            17,
+            17,
             "Barbarian Village".to_string(),
         ),
     ];
@@ -126,8 +102,8 @@ pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
             ctx.accounts.npc_account.key().clone(),
             ctx.accounts.game.key().clone(),
             UnitType::Warrior,
+            16,
             17,
-            18,
         ),
     ];
     ctx.accounts.npc_account.next_unit_id = 1;
@@ -430,9 +406,48 @@ pub fn attack_unit(ctx: Context<AttackUnit>, attacker_id: u32, defender_id: u32)
     Ok(())
 }
 
+pub fn attack_city(ctx: Context<AttackCity>, attacker_id: u32, city_id: u32) -> Result<()> {
+    let attacker = ctx
+        .accounts
+        .player_account
+        .units
+        .iter_mut()
+        .find(|u| u.unit_id == attacker_id)
+        .ok_or(UnitError::UnitNotFound)?;
+
+    if attacker.movement_range == 0 {
+        return err!(UnitError::NoMovementPoints);
+    }
+    
+    let target_city = ctx
+        .accounts
+        .npc_account
+        .cities
+        .iter_mut()
+        .find(|c| c.city_id == city_id)
+        .ok_or(CityError::CityNotFound)?;
+
+    let dist_x = (attacker.x as i16 - target_city.x as i16).abs();
+    let dist_y = (attacker.y as i16 - target_city.y as i16).abs();
+    let dist = std::cmp::max(dist_x, dist_y) as u8;
+
+    if dist != 1 {
+        return err!(UnitError::OutOfAttackRange);
+    }
+    
+    attacker.attack_city(target_city)?;
+    attacker.movement_range = 0;
+
+    ctx.accounts.player_account.units.retain(|u| u.is_alive);
+    ctx.accounts.npc_account.cities.retain(|c| c.health > 0);
+
+    Ok(())
+}
+
+
 fn reset_units_movement_range(units: &mut [Unit]) {
     for unit in units.iter_mut().filter(|u| u.is_alive) {
-        unit.movement_range = 2;
+        unit.movement_range = Unit::get_base_movement_range(unit.unit_type);
     }
 }
 
@@ -801,6 +816,19 @@ pub struct AttackUnit<'info> {
     #[account(mut)]
     pub player: Signer<'info>,
 }
+
+#[derive(Accounts)]
+pub struct AttackCity<'info> {
+    #[account(mut)]
+    pub game: Account<'info, Game>,
+    #[account(mut)]
+    pub player_account: Account<'info, Player>,
+    #[account(mut)]
+    pub npc_account: Account<'info, Npc>,
+    #[account(mut)]
+    pub player: Signer<'info>,
+}
+
 
 #[derive(Accounts)]
 pub struct EndTurn<'info> {

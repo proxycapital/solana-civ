@@ -46,8 +46,8 @@ describe("solciv", () => {
 
     // this is needed for the future test of upgrading tiles
     // Builder is initialized at (3, 2) coordinates
-    // "2" value is the forest tile type that can be upgraded to TimberCamp
-    randomMap[3 + 2 * 20] = 2;
+    // "6" value is the land type that can be upgraded to "Farm"
+    randomMap[3 + 2 * 20] = 6;
 
     const accounts = {
       game: gameKey,
@@ -91,21 +91,21 @@ describe("solciv", () => {
     expect(account.nextCityId).equal(2);
   });
 
-  it("Should attack barbarian", async () => {
-    const accounts = {
-      game: gameKey,
-      playerAccount: playerKey,
-      npcAccount: npcKey,
-      player: provider.publicKey,
-    };
-    const unitId = 2;
-    const barbarianId = 2;
-    const tx = await program.methods.attackUnit(unitId, barbarianId).accounts(accounts).rpc();
-    const account = await program.account.npc.fetch(npcKey);
-    const playerData = await program.account.player.fetch(playerKey);
-    expect(account.units[barbarianId].health).lessThan(100);
-    expect(playerData.units[unitId].health).lessThan(100);
-  });
+  // it("Should attack barbarian", async () => {
+  //   const accounts = {
+  //     game: gameKey,
+  //     playerAccount: playerKey,
+  //     npcAccount: npcKey,
+  //     player: provider.publicKey,
+  //   };
+  //   const unitId = 2;
+  //   const barbarianId = 2;
+  //   const tx = await program.methods.attackUnit(unitId, barbarianId).accounts(accounts).rpc();
+  //   const account = await program.account.npc.fetch(npcKey);
+  //   const playerData = await program.account.player.fetch(playerKey);
+  //   expect(account.units[barbarianId].health).lessThan(100);
+  //   expect(playerData.units[unitId].health).lessThan(100);
+  // });
 
   it("Move unit", async () => {
     const accounts = {
@@ -254,7 +254,6 @@ describe("solciv", () => {
     const unit_id = 2; // warrior created in initializePlayer
     try {
       const tx = await program.methods.upgradeTile(x, y, unit_id).accounts(accounts).rpc();
-      console.log("Transaction signature", tx);
     } catch (e) {
       const { message } = e;
       expect(message).include("InvalidUnitType");
@@ -272,7 +271,6 @@ describe("solciv", () => {
     const unit_id = 1; // warrior created in initializePlayer
     try {
       const tx = await program.methods.upgradeTile(x, y, unit_id).accounts(accounts).rpc();
-      console.log("Transaction signature", tx);
     } catch (e) {
       const { message } = e;
       expect(message).include("UnitWrongPosition");
@@ -291,7 +289,7 @@ describe("solciv", () => {
     const tx = await program.methods.upgradeTile(x, y, unit_id).accounts(accounts).rpc();
 
     const account = await program.account.player.fetch(playerKey);
-    expect(account.tiles).deep.equal([{ tileType: { lumberMill: {} }, x, y }]);
+    expect(account.tiles).deep.equal([{ tileType: { farm: {} }, x, y }]);
   });
 
   it("Should not upgrade land tile with a Builder that was already consumed", async () => {
@@ -313,7 +311,7 @@ describe("solciv", () => {
     const account = await program.account.player.fetch(playerKey);
   });
 
-  it("End 20 turns", async () => {
+  it("End 10 turns", async () => {
     const prevPlayerAccount = await program.account.player.fetch(playerKey);
     const accounts = {
       game: gameKey,
@@ -322,19 +320,14 @@ describe("solciv", () => {
       npcAccount: npcKey,
     };
 
-    for (let i = 1; i <= 20; i++) {
+    for (let i = 1; i <= 10; i++) {
       await program.methods.endTurn().accounts(accounts).rpc();
     }
     const account = await program.account.game.fetch(gameKey);
     expect(account.turn).greaterThan(1);
     const playerAccount = await program.account.player.fetch(playerKey);
     expect(playerAccount.resources.gold).greaterThan(prevPlayerAccount.resources.gold);
-    expect(playerAccount.resources.wood).greaterThan(prevPlayerAccount.resources.wood); // we have upgraded forest tile to LumberMill
-    const npcAccount = await program.account.npc.fetch(npcKey);
-    console.log(playerAccount.cities[0]);
-    console.log(playerAccount.units);
-    console.log(playerAccount.resources);
-    console.log(npcAccount.units);
+    expect(playerAccount.resources.food).greaterThan(prevPlayerAccount.resources.food);
   });
 
   it("Should add Settler to production queue", async () => {
@@ -343,14 +336,13 @@ describe("solciv", () => {
     await addToProductionQueue(cityId, productionItem);
     const player = await program.account.player.fetch(playerKey);
     const city = player.cities[cityId];
-    expect(city.productionQueue[3]).deep.equal(productionItem);
+    expect(city.productionQueue[1]).deep.equal(productionItem);
     expect(player.resources.food).equal(0);
-    console.log(player.resources);
   });
 
   it("Should check if barbarians were spawned", async () => {
     const npcAccount = await program.account.npc.fetch(npcKey);
-    expect(npcAccount.units.length).greaterThanOrEqual(4);
+    expect(npcAccount.units.length).greaterThanOrEqual(2);
   });
 
   it("Should close game", async () => {

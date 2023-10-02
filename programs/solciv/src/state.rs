@@ -324,6 +324,10 @@ impl Unit {
         Unit::get_base_stats(unit_type).7
     }
 
+    pub fn get_base_movement_range(unit_type: UnitType) -> u8 {
+        Unit::get_base_stats(unit_type).3
+    }
+
     fn can_attack(&self) -> bool {
         // only 2 units cannot attack: Settler and Builder
         !matches!(self.unit_type, UnitType::Settler | UnitType::Builder)

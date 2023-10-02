@@ -48,6 +48,10 @@ pub mod solciv {
         instructions::attack_unit(ctx, attacker_id, defender_id)
     }
 
+    pub fn attack_city(ctx: Context<AttackCity>, attacker_id: u32, city_id: u32) -> Result<()> {
+        instructions::attack_city(ctx, attacker_id, city_id)
+    }
+
     pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
         instructions::end_turn(ctx)
     }
