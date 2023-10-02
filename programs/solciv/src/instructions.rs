@@ -13,6 +13,8 @@ pub fn initialize_game(ctx: Context<InitializeGame>, map: [u8; 400]) -> Result<(
     ctx.accounts.game.player = ctx.accounts.player.key().clone();
     ctx.accounts.game.turn = 1;
     ctx.accounts.game.map = map;
+    ctx.accounts.game.defeat = false;
+    ctx.accounts.game.victory = false;
 
     msg!("Game created!");
 
@@ -611,6 +613,10 @@ fn is_occupied(
 }
 
 pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
+    // check if the game is over via defeat or victory
+    if ctx.accounts.game.defeat || ctx.accounts.game.victory {
+        return Ok(());
+    }
     // Reset units' movement range
     reset_units_movement_range(&mut ctx.accounts.player_account.units);
 
@@ -664,6 +670,12 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
         }
         ctx.accounts.npc_account.units.append(&mut new_units);
         ctx.accounts.npc_account.next_unit_id = next_npc_id;
+    }
+    // if player has no units and no cities set game defeat to true
+    if ctx.accounts.player_account.units.is_empty() && ctx.accounts.player_account.cities.is_empty() {
+        ctx.accounts.game.defeat = true;
+    } else if ctx.accounts.npc_account.units.is_empty() && ctx.accounts.npc_account.cities.is_empty() {
+        ctx.accounts.game.victory = true;
     }
 
     ctx.accounts.game.turn += 1;

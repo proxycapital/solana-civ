@@ -6,6 +6,8 @@ pub struct Game {
     pub player: Pubkey,
     pub npc: Pubkey,
     pub turn: u32,
+    pub defeat: bool,
+    pub victory: bool,
     pub map: [u8; 400],
 }
 
