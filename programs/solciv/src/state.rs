@@ -159,20 +159,16 @@ impl City {
         match building_type {
             BuildingType::Barracks => self.attack += 2,
             BuildingType::Wall => {
-                self.attack += 2;
-                self.health += 25;
+                self.attack += 5;
             }
             BuildingType::WallMedieval => {
-                self.attack += 4;
-                self.health += 25;
+                self.attack += 5;
             }
             BuildingType::WallRenaissance => {
-                self.attack += 4;
-                self.health += 25;
+                self.attack += 10;
             }
             BuildingType::WallIndustrial => {
-                self.attack += 4;
-                self.health += 25;
+                self.attack += 10;
             }
             BuildingType::Library => self.science_yield += 2,
             BuildingType::School => self.science_yield += 3,
@@ -403,11 +399,13 @@ impl Unit {
         let clock = Clock::get()?;
         let random_factor = clock.unix_timestamp % 10;
         let multiplier: f32 = 0.9 + ((random_factor as f32) * 0.0223);
+        let taken_damage_multiplier: f32 = 1.0 / multiplier;
         let given_damage =
-            (30.0 * e.powf((self.attack as f32 - city_defense as f32) / 25.0) * multiplier) as u8;
+            (15.0 * e.powf((self.attack as f32 - city_defense as f32) / 25.0) * multiplier) as u8;
+        let taken_damage = (15.0 * e.powf((city_defense as f32 - self.attack as f32) / 25.0) * taken_damage_multiplier) as u8;
 
-        // @todo: add wall mechanics for the taken_damage
-        msg!("Given damage to city: {}", given_damage);
+        msg!("Given damage to the city: {}", given_damage);
+        msg!("Taken damage from the city: {}", given_damage);
 
         if u32::from(given_damage) >= city.health {
             city.health = 0;
@@ -415,6 +413,15 @@ impl Unit {
         } else {
             city.health -= u32::from(given_damage);
             msg!("City HP after attack: {}", city.health);
+        }
+
+        if taken_damage >= self.health {
+            self.is_alive = false;
+            self.health = 0;
+            msg!("Attacker is dead");
+        } else {
+            self.health -= taken_damage;
+            msg!("Attacker HP after attack: {}", self.health);
         }
 
         // After the attack, the unit cannot move or attack anymore.
