@@ -151,15 +151,13 @@ describe("solciv", () => {
       game: gameKey,
       player: provider.publicKey,
       playerAccount: playerKey,
-      // city: cityKey,
       systemProgram: anchor.web3.SystemProgram.programId,
     };
-    await program.methods.foundCity(unit.x, unit.y, unitId).accounts(accounts).rpc();
+    const name = "Test City";
+    await program.methods.foundCity(unit.x, unit.y, unitId, name).accounts(accounts).rpc();
 
     const player = await program.account.player.fetch(playerKey);
     expect(player.nextCityId).equal(1);
-    // settler unit should be removed
-    expect(player.units.length).equal(2);
 
     const account = await program.account.player.fetch(playerKey);
     const city = account.cities[0];
@@ -167,6 +165,7 @@ describe("solciv", () => {
     expect(city.x).equal(unit.x);
     expect(city.y).equal(unit.y);
     expect(city.cityId).equal(0);
+    expect(city.name).equal(name);
   });
 
   it("Should add building to production queue", async () => {

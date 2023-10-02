@@ -44,6 +44,7 @@ pub struct Resources {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct City {
     pub city_id: u32,
+    pub name: String,
     pub player: Pubkey,
     pub game: Pubkey,
     pub x: u8,
@@ -133,9 +134,10 @@ impl Player {
 }
 
 impl City {
-    pub fn new(city_id: u32, player: Pubkey, game: Pubkey, x: u8, y: u8) -> Self {
+    pub fn new(city_id: u32, player: Pubkey, game: Pubkey, x: u8, y: u8, name: String) -> Self {
         Self {
             city_id,
+            name,
             player,
             game,
             x,

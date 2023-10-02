@@ -173,7 +173,7 @@ pub fn move_unit(ctx: Context<MoveUnit>, unit_id: u32, x: u8, y: u8) -> Result<(
     Ok(())
 }
 
-pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32) -> Result<()> {
+pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: String) -> Result<()> {
     // Validate if the unit with `unit_id` is a settler and is at `x` and `y`.
     let unit_idx = ctx
         .accounts
@@ -214,6 +214,7 @@ pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32) -> Result
         ctx.accounts.game.key(),
         x,
         y,
+        name,
     );
 
     ctx.accounts.player_account.cities.push(new_city);
@@ -649,6 +650,7 @@ pub struct InitializePlayer<'info> {
         bump,
         payer = player,
         space = std::mem::size_of::<Player>() +
+            4 + (15 * MAX_CITIES as usize) +
             std::mem::size_of::<Unit>() * MAX_UNITS as usize +
             std::mem::size_of::<City>() * MAX_CITIES as usize +
             std::mem::size_of::<Tile>() * MAX_UPGRADED_TILES as usize +
