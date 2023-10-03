@@ -367,6 +367,36 @@ pub fn add_to_production_queue(
     Ok(())
 }
 
+pub fn remove_from_production_queue(
+    ctx: Context<RemoveFromProductionQueue>,
+    city_id: u32,
+    index: u8,
+) -> Result<()> {
+    let player_account = &mut ctx.accounts.player_account;
+
+    let city = player_account
+        .cities
+        .iter_mut()
+        .find(|city| city.city_id == city_id)
+        .ok_or(CityError::CityNotFound)?;
+
+    if index >= MAX_PRODUCTION_QUEUE {
+        return err!(CityError::QueueItemNotFound);
+    }
+
+    if city.production_queue.get(index as usize).is_none() {
+        return err!(CityError::QueueItemNotFound);
+    }
+
+    // @todo: refund the resources if applicable
+
+    // Remove the item from the production queue.
+    city.production_queue.remove(index as usize);
+
+    Ok(())
+}
+
+
 pub fn attack_unit(ctx: Context<AttackUnit>, attacker_id: u32, defender_id: u32) -> Result<()> {
     let attacker = ctx
         .accounts
@@ -799,6 +829,14 @@ pub struct UpgradeTile<'info> {
 
 #[derive(Accounts)]
 pub struct AddToProductionQueue<'info> {
+    #[account(mut)]
+    pub player_account: Account<'info, Player>,
+    #[account(mut)]
+    pub player: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct RemoveFromProductionQueue<'info> {
     #[account(mut)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]

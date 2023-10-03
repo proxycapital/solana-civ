@@ -243,6 +243,32 @@ describe("solciv", () => {
     }
   });
 
+  it("Should remove item from the production queue", async () => {
+    const accounts = {
+      playerAccount: playerKey,
+    };
+    const cityId = 0;
+    const index = 4;
+    await program.methods.removeFromProductionQueue(cityId, index).accounts(accounts).rpc();
+
+    const account = await program.account.player.fetch(playerKey);
+    expect(account.cities[cityId].productionQueue.length).equal(4);
+  });
+
+  it("Should fail to remove item from the production queue", async () => {
+    const accounts = {
+      playerAccount: playerKey,
+    };
+    const cityId = 0;
+    const index = 10;
+    try {
+      await program.methods.removeFromProductionQueue(cityId, index).accounts(accounts).rpc();
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("QueueItemNotFound");
+    }
+  });
+
   it("Should not upgrade land tile using Warrior", async () => {
     const accounts = {
       game: gameKey,

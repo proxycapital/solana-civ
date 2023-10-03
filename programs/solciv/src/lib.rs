@@ -40,6 +40,14 @@ pub mod solciv {
         instructions::add_to_production_queue(ctx, city_id, item)
     }
 
+    pub fn remove_from_production_queue(
+        ctx: Context<RemoveFromProductionQueue>,
+        city_id: u32,
+        index: u8,
+    ) -> Result<()> {
+        instructions::remove_from_production_queue(ctx, city_id, index)
+    }
+
     pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Result<()> {
         instructions::upgrade_tile(ctx, x, y, unit_id)
     }

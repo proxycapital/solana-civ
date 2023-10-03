@@ -67,4 +67,7 @@ pub enum CityError {
 
     #[msg("Invalid production item")]
     InvalidItem,
+
+    #[msg("Item not found in the production queue of the city")]
+    QueueItemNotFound,
 }
