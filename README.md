@@ -32,6 +32,40 @@ anchor build && anchor test
 - 🌽 $FOOD - needed for recruiting.
 - 🪵 $LUMBER - required for constructing buildings.
 
+### Technology tree | Science
+
+**Military Tree**
+
+| Technology        | Research Points | Unlocks                     |
+|-------------------|-----------------|-----------------------------|
+| Archery           | 15 🧪           | Archer                      |
+| Iron Working      | 21 🧪           | Swordsman, Forge            |
+| Medieval Warfare  | 30 🧪           | Crossbowman, WallMedieval   |
+| Gunpowder         | 42 🧪           | Musketman, WallRenaissance  |
+| Ballistics        | 60 🧪           | Rifleman                    |
+| Tanks and Armor   | 80 🧪           | Tank, WallIndustrial        |
+
+**Science & Economy Tree**
+
+| Technology   | Research Points | Unlocks              |
+|--------------|-----------------|----------------------|
+| Writing      | 5 🧪            | Library              |
+| Education    | 7 🧪            | School               |
+| Economics    | 10 🧪           | Bank, Market         |
+| Academia     | 14 🧪           | University           |
+| Astronomy    | 18 🧪           | Observatory          |
+| Capitalism   | 22 🧪           | StockExchange        |
+
+**Production & Agriculture Tree**
+
+| Technology       | Research Points | Unlocks               |
+|------------------|-----------------|-----------------------|
+| Agriculture      | 6 🧪            | Granary, Mill         |
+| Construction     | 8 🧪            | Wall, Bakery          |
+| Industrialization| 12 🧪           | Factory               |
+| Electrical Power | 16 🧪           | EnergyPlant           |
+| Modern Farming   | 20 🧪           | Supermarket           |
+
 #### Units
 | Image | Unit | Movement | Melee | HP | Cost | Maintenance |
 |---|---|---|---|---|---|---|
@@ -60,10 +94,8 @@ anchor build && anchor test
 - Player can restart the game with a new generated map at any time.
 
 ## Future expansions
-- Multiplayer PvP battles.
-- More building and unit types.
-- Technology tree (research)
-- Building and unit upgrades.
-- Epochs
+- Multiplayer.
+- More technologies, resources, constructions and unit types.
+- More land types including sea and different islands.
 - Alliance and trading mechanisms.
 - And more!
