@@ -70,4 +70,7 @@ pub enum CityError {
 
     #[msg("Item not found in the production queue of the city")]
     QueueItemNotFound,
+
+    #[msg("Not enough gold")]
+    InsufficientGold,
 }

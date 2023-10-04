@@ -269,6 +269,20 @@ describe("solciv", () => {
     }
   });
 
+  it("Should fail to purchase unit with gold", async () => {
+    const accounts = {
+      playerAccount: playerKey,
+    };
+    const cityId = 0;
+    const productionItem = { unit: { "0": { builder: {} } } };
+    try {
+      await program.methods.purchaseWithGold(cityId, productionItem).accounts(accounts).rpc();
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("InsufficientGold");
+    }
+  });
+
   it("Should not upgrade land tile using Warrior", async () => {
     const accounts = {
       game: gameKey,
@@ -364,6 +378,20 @@ describe("solciv", () => {
     const city = player.cities[cityId];
     expect(city.productionQueue[1]).deep.equal(productionItem);
     expect(player.resources.food).equal(0);
+  });
+
+  it("Should purchase unit with gold", async () => {
+    const accounts = {
+      playerAccount: playerKey,
+    };
+    const cityId = 0;
+    const productionItem = { unit: { "0": { builder: {} } } };
+    const prevState = await program.account.player.fetch(playerKey);
+    await program.methods.purchaseWithGold(cityId, productionItem).accounts(accounts).rpc();
+    const player = await program.account.player.fetch(playerKey);
+    const units = player.units;
+    expect(prevState.units.length).lessThan(units.length);
+    expect(player.resources.gold).lessThan(prevState.resources.gold);
   });
 
   it("Should check if barbarians were spawned", async () => {

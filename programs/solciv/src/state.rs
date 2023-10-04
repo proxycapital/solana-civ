@@ -125,7 +125,14 @@ pub enum UnitType {
 }
 
 impl Player {
-    pub fn update_resources(&mut self, gold: u32, food: u32, wood: u32, stone: u32, iron: u32) -> Result<()> {
+    pub fn update_resources(
+        &mut self,
+        gold: u32,
+        food: u32,
+        wood: u32,
+        stone: u32,
+        iron: u32,
+    ) -> Result<()> {
         self.resources.gold = self.resources.gold.checked_add(gold).unwrap_or(u32::MAX);
         self.resources.food = self.resources.food.checked_add(food).unwrap_or(u32::MAX);
         self.resources.wood = self.resources.wood.checked_add(wood).unwrap_or(u32::MAX);
@@ -238,6 +245,10 @@ impl BuildingType {
             BuildingType::Supermarket => (4, 4),
         }
     }
+
+    pub fn get_gold_cost(building_type: BuildingType) -> u32 {
+        BuildingType::get_base_stats(building_type).1
+    }
 }
 
 impl Unit {
@@ -300,8 +311,8 @@ impl Unit {
             // UnitType::Musketman => (true, 100, 32, 2, 0, 50, 360, 0),
             // UnitType::Rifleman => (true, 100, 40, 3, 0, 60, 420, 0),
             // UnitType::Tank => (true, 100, 50, 4, 0, 80, 500, 0),
-            UnitType::Settler => (false, 100, 0, 2, 1, 4, 0, 40),
-            UnitType::Builder => (false, 100, 0, 2, 1, 2, 200, 0),
+            UnitType::Settler => (false, 100, 0, 2, 1, 4, 500, 40),
+            UnitType::Builder => (false, 100, 0, 2, 1, 2, 2, 0),
             UnitType::Warrior => (false, 100, 8, 2, 0, 2, 240, 0),
             UnitType::Archer => (true, 100, 6, 2, 0, 20, 240, 0),
             UnitType::Swordsman => (false, 100, 14, 2, 0, 30, 240, 10),
@@ -408,7 +419,9 @@ impl Unit {
         let taken_damage_multiplier: f32 = 1.0 / multiplier;
         let given_damage =
             (15.0 * e.powf((self.attack as f32 - city_defense as f32) / 25.0) * multiplier) as u8;
-        let taken_damage = (15.0 * e.powf((city_defense as f32 - self.attack as f32) / 25.0) * taken_damage_multiplier) as u8;
+        let taken_damage = (15.0
+            * e.powf((city_defense as f32 - self.attack as f32) / 25.0)
+            * taken_damage_multiplier) as u8;
 
         msg!("Given damage to the city: {}", given_damage);
         msg!("Taken damage from the city: {}", given_damage);

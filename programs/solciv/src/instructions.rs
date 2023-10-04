@@ -96,16 +96,14 @@ pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
     ];
 
     // Initialize units for the NPC.
-    ctx.accounts.npc_account.units = vec![
-        Unit::new(
-            0,
-            ctx.accounts.npc_account.key().clone(),
-            ctx.accounts.game.key().clone(),
-            UnitType::Warrior,
-            16,
-            17,
-        ),
-    ];
+    ctx.accounts.npc_account.units = vec![Unit::new(
+        0,
+        ctx.accounts.npc_account.key().clone(),
+        ctx.accounts.game.key().clone(),
+        UnitType::Warrior,
+        16,
+        17,
+    )];
     ctx.accounts.npc_account.next_unit_id = 1;
     ctx.accounts.npc_account.next_city_id = 2;
 
@@ -396,6 +394,61 @@ pub fn remove_from_production_queue(
     Ok(())
 }
 
+pub fn purchase_with_gold(
+    ctx: Context<PurchaseWithGold>,
+    city_id: u32,
+    item: ProductionItem,
+) -> Result<()> {
+    let player_account = &mut ctx.accounts.player_account;
+    let next_unit_id = player_account.next_unit_id;
+    let player = player_account.player.clone();
+    let game = player_account.game.clone();
+    // Determine the cost of the unit/building.
+    let cost = match &item {
+        ProductionItem::Building(building_type) => BuildingType::get_gold_cost(*building_type),
+        ProductionItem::Unit(unit_type) => Unit::get_gold_cost(*unit_type),
+    };
+
+    // Check the player's gold balance.
+    if player_account.resources.gold < cost {
+        return err!(CityError::InsufficientGold);
+    }
+
+    // Deduct the cost from the player's gold balance.
+    player_account.resources.gold -= cost;
+
+    // Find the city by city_id.
+    let city = player_account
+        .cities
+        .iter_mut()
+        .find(|city| city.city_id == city_id)
+        .ok_or(CityError::CityNotFound)?;
+
+    // Add the unit/building to the player's assets.
+    match &item {
+        ProductionItem::Building(building_type) => {
+            // Check if the building already exists in the city.
+            if city.buildings.contains(building_type) {
+                return err!(CityError::BuildingAlreadyExists);
+            }
+
+            // Check if the building is in the city's production_queue.
+            // Remove, if so.
+            if let Some(index) = city.production_queue.iter().position(|&i| i == item) {
+                city.production_queue.remove(index);
+            }
+
+            city.construct_building(*building_type)?;
+        }
+        ProductionItem::Unit(unit_type) => {
+            let unit = Unit::new(next_unit_id, player, game, *unit_type, city.x, city.y);
+            player_account.units.push(unit);
+            player_account.next_unit_id += 1;
+        }
+    }
+
+    Ok(())
+}
 
 pub fn attack_unit(ctx: Context<AttackUnit>, attacker_id: u32, defender_id: u32) -> Result<()> {
     let attacker = ctx
@@ -448,7 +501,7 @@ pub fn attack_city(ctx: Context<AttackCity>, attacker_id: u32, city_id: u32) -> 
     if attacker.movement_range == 0 {
         return err!(UnitError::NoMovementPoints);
     }
-    
+
     let target_city = ctx
         .accounts
         .npc_account
@@ -464,7 +517,7 @@ pub fn attack_city(ctx: Context<AttackCity>, attacker_id: u32, city_id: u32) -> 
     if dist != 1 {
         return err!(UnitError::OutOfAttackRange);
     }
-    
+
     attacker.attack_city(target_city)?;
     attacker.movement_range = 0;
 
@@ -473,7 +526,6 @@ pub fn attack_city(ctx: Context<AttackCity>, attacker_id: u32, city_id: u32) -> 
 
     Ok(())
 }
-
 
 fn reset_units_movement_range(units: &mut [Unit]) {
     for unit in units.iter_mut().filter(|u| u.is_alive) {
@@ -701,7 +753,7 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
             } else {
                 UnitType::Archer
             };
-            
+
             let new_unit = Unit::new(
                 next_npc_id,
                 ctx.accounts.npc_account.player.clone(),
@@ -717,9 +769,12 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
         ctx.accounts.npc_account.next_unit_id = next_npc_id;
     }
     // if player has no units and no cities set game defeat to true
-    if ctx.accounts.player_account.units.is_empty() && ctx.accounts.player_account.cities.is_empty() {
+    if ctx.accounts.player_account.units.is_empty() && ctx.accounts.player_account.cities.is_empty()
+    {
         ctx.accounts.game.defeat = true;
-    } else if ctx.accounts.npc_account.units.is_empty() && ctx.accounts.npc_account.cities.is_empty() {
+    } else if ctx.accounts.npc_account.units.is_empty()
+        && ctx.accounts.npc_account.cities.is_empty()
+    {
         ctx.accounts.game.victory = true;
     }
 
@@ -844,6 +899,14 @@ pub struct RemoveFromProductionQueue<'info> {
 }
 
 #[derive(Accounts)]
+pub struct PurchaseWithGold<'info> {
+    #[account(mut)]
+    pub player_account: Account<'info, Player>,
+    #[account(mut)]
+    pub player: Signer<'info>,
+}
+
+#[derive(Accounts)]
 pub struct AttackUnit<'info> {
     #[account(mut)]
     pub game: Account<'info, Game>,
@@ -866,7 +929,6 @@ pub struct AttackCity<'info> {
     #[account(mut)]
     pub player: Signer<'info>,
 }
-
 
 #[derive(Accounts)]
 pub struct EndTurn<'info> {
