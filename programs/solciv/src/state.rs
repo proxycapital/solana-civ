@@ -20,6 +20,9 @@ pub struct Player {
     pub tiles: Vec<Tile>,
     pub units: Vec<Unit>,
     pub resources: Resources,
+    pub researched_technologies: Vec<TechnologyType>,
+    pub current_research: Option<TechnologyType>,
+    pub research_accumulated_points: u32,
     pub next_city_id: u32,
     pub next_unit_id: u32,
 }
@@ -124,6 +127,27 @@ pub enum UnitType {
     Tank,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Debug)]
+pub enum TechnologyType {
+    Archery,
+    IronWorking,
+    MedievalWarfare,
+    Gunpowder,
+    Ballistics,
+    TanksAndArmor,
+    Writing,
+    Education,
+    Economics,
+    Academia,
+    Astronomy,
+    Capitalism,
+    Agriculture,
+    Construction,
+    Industrialization,
+    ElectricalPower,
+    ModernFarming,
+}
+
 impl Player {
     pub fn update_resources(
         &mut self,
@@ -139,6 +163,92 @@ impl Player {
         self.resources.stone = self.resources.stone.checked_add(stone).unwrap_or(u32::MAX);
         self.resources.iron = self.resources.iron.checked_add(iron).unwrap_or(u32::MAX);
         Ok(())
+    }
+
+    pub fn start_research(&mut self, technology: TechnologyType) -> Result<()> {
+        // Ensure player isn't already researching something.
+        if self.current_research.is_some() {
+            return err!(ResearchError::AlreadyResearching);
+        }
+
+        // Check if the technology can be researched.
+        if !self.can_research(&technology) {
+            return err!(ResearchError::CannotResearch);
+        }
+
+        self.current_research = Some(technology);
+        self.research_accumulated_points = 0;
+        Ok(())
+    }
+
+    pub fn add_research_points(&mut self, points: u32) -> Result<()> {
+        if self.current_research.is_some() {
+            self.research_accumulated_points += points;
+        }
+        let _ = self.complete_research();
+        Ok(())
+    }
+
+    pub fn complete_research(&mut self) -> Result<()> {
+        if let Some(technology) = &self.current_research {
+            if self.research_accumulated_points >= TechnologyType::get_cost(&technology) {
+                self.researched_technologies.push(technology.clone());
+                self.current_research = None;
+                self.research_accumulated_points = 0;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn has_researched(&self, tech: &TechnologyType) -> bool {
+        self.researched_technologies.contains(tech)
+    }
+
+    pub fn can_research(&self, tech: &TechnologyType) -> bool {
+        let prev_tech = match tech {
+            TechnologyType::Archery => return true,
+            TechnologyType::IronWorking => TechnologyType::Archery,
+            TechnologyType::MedievalWarfare => TechnologyType::IronWorking,
+            TechnologyType::Gunpowder => TechnologyType::MedievalWarfare,
+            TechnologyType::Ballistics => TechnologyType::Gunpowder,
+            TechnologyType::TanksAndArmor => TechnologyType::Ballistics,
+            TechnologyType::Writing => return true,
+            TechnologyType::Education => TechnologyType::Writing,
+            TechnologyType::Economics => TechnologyType::Education,
+            TechnologyType::Academia => TechnologyType::Economics,
+            TechnologyType::Astronomy => TechnologyType::Academia,
+            TechnologyType::Capitalism => TechnologyType::Astronomy,
+            TechnologyType::Agriculture => return true,
+            TechnologyType::Construction => TechnologyType::Agriculture,
+            TechnologyType::Industrialization => TechnologyType::Construction,
+            TechnologyType::ElectricalPower => TechnologyType::Industrialization,
+            TechnologyType::ModernFarming => TechnologyType::ElectricalPower,
+        };
+        self.has_researched(&prev_tech)
+    }
+}
+
+impl TechnologyType {
+    pub fn get_cost(tech_type: &TechnologyType) -> u32 {
+        match tech_type {
+            TechnologyType::Archery => 15,
+            TechnologyType::IronWorking => 21,
+            TechnologyType::MedievalWarfare => 30,
+            TechnologyType::Gunpowder => 42,
+            TechnologyType::Ballistics => 60,
+            TechnologyType::TanksAndArmor => 80,
+            TechnologyType::Writing => 5,
+            TechnologyType::Education => 7,
+            TechnologyType::Economics => 10,
+            TechnologyType::Academia => 14,
+            TechnologyType::Astronomy => 18,
+            TechnologyType::Capitalism => 22,
+            TechnologyType::Agriculture => 6,
+            TechnologyType::Construction => 8,
+            TechnologyType::Industrialization => 12,
+            TechnologyType::ElectricalPower => 16,
+            TechnologyType::ModernFarming => 20,
+        }
     }
 }
 
@@ -193,7 +303,6 @@ impl City {
             BuildingType::Mill => self.food_yield += 2,
             BuildingType::Bakery => self.food_yield += 3,
             BuildingType::Supermarket => self.food_yield += 4,
-            _ => (),
         }
         self.buildings.push(building_type);
 
@@ -249,6 +358,47 @@ impl BuildingType {
     pub fn get_gold_cost(building_type: BuildingType) -> u32 {
         BuildingType::get_base_stats(building_type).1
     }
+
+    pub fn can_construct(&self, researched_technologies: &[TechnologyType]) -> bool {
+        match self {
+            BuildingType::Barracks | BuildingType::Wall => true,
+            BuildingType::WallMedieval => {
+                researched_technologies.contains(&TechnologyType::MedievalWarfare)
+            }
+            BuildingType::WallRenaissance => {
+                researched_technologies.contains(&TechnologyType::Gunpowder)
+            }
+            BuildingType::WallIndustrial => {
+                researched_technologies.contains(&TechnologyType::TanksAndArmor)
+            }
+            BuildingType::Library => researched_technologies.contains(&TechnologyType::Writing),
+            BuildingType::School => researched_technologies.contains(&TechnologyType::Education),
+            BuildingType::University => researched_technologies.contains(&TechnologyType::Academia),
+            BuildingType::Observatory => {
+                researched_technologies.contains(&TechnologyType::Astronomy)
+            }
+            BuildingType::Bank | BuildingType::Market => {
+                researched_technologies.contains(&TechnologyType::Economics)
+            }
+            BuildingType::StockExchange => {
+                researched_technologies.contains(&TechnologyType::Capitalism)
+            }
+            BuildingType::Forge => researched_technologies.contains(&TechnologyType::IronWorking),
+            BuildingType::Granary | BuildingType::Mill => {
+                researched_technologies.contains(&TechnologyType::Agriculture)
+            }
+            BuildingType::Bakery => researched_technologies.contains(&TechnologyType::Construction),
+            BuildingType::Factory => {
+                researched_technologies.contains(&TechnologyType::Industrialization)
+            }
+            BuildingType::EnergyPlant => {
+                researched_technologies.contains(&TechnologyType::ElectricalPower)
+            }
+            BuildingType::Supermarket => {
+                researched_technologies.contains(&TechnologyType::ModernFarming)
+            }
+        }
+    }
 }
 
 impl Unit {
@@ -302,18 +452,9 @@ impl Unit {
     /// `(is_ranged, health, attack, movement_range, remaining_actions, base_production_cost, base_gold_cost, base_resource_cost)`.
     pub fn get_base_stats(unit_type: UnitType) -> (bool, u8, u8, u8, u8, u32, u32, u32) {
         match unit_type {
-            // UnitType::Settler => (false, 100, 0, 2, 1, 20, 0, 40),
-            // UnitType::Builder => (false, 100, 0, 2, 1, 20, 200, 0),
-            // UnitType::Warrior => (false, 100, 8, 2, 0, 20, 240, 0),
-            // UnitType::Archer => (true, 100, 6, 2, 0, 20, 240, 0),
-            // UnitType::Swordsman => (false, 100, 14, 2, 0, 30, 240, 10),
-            // UnitType::Crossbowman => (true, 100, 24, 2, 0, 40, 300, 0),
-            // UnitType::Musketman => (true, 100, 32, 2, 0, 50, 360, 0),
-            // UnitType::Rifleman => (true, 100, 40, 3, 0, 60, 420, 0),
-            // UnitType::Tank => (true, 100, 50, 4, 0, 80, 500, 0),
-            UnitType::Settler => (false, 100, 0, 2, 1, 4, 500, 40),
-            UnitType::Builder => (false, 100, 0, 2, 1, 2, 2, 0),
-            UnitType::Warrior => (false, 100, 8, 2, 0, 2, 240, 0),
+            UnitType::Settler => (false, 100, 0, 2, 1, 20, 0, 40),
+            UnitType::Builder => (false, 100, 0, 2, 1, 20, 200, 0),
+            UnitType::Warrior => (false, 100, 8, 2, 0, 20, 240, 0),
             UnitType::Archer => (true, 100, 6, 2, 0, 20, 240, 0),
             UnitType::Swordsman => (false, 100, 14, 2, 0, 30, 240, 10),
             UnitType::Crossbowman => (true, 100, 24, 2, 0, 40, 300, 0),
@@ -447,6 +588,22 @@ impl Unit {
         self.movement_range = 0;
 
         Ok(())
+    }
+}
+
+impl UnitType {
+    pub fn can_recruit(&self, researched_technologies: &[TechnologyType]) -> bool {
+        match self {
+            UnitType::Settler | UnitType::Builder | UnitType::Warrior => true, // No tech required
+            UnitType::Archer => researched_technologies.contains(&TechnologyType::Archery),
+            UnitType::Swordsman => researched_technologies.contains(&TechnologyType::IronWorking),
+            UnitType::Crossbowman => {
+                researched_technologies.contains(&TechnologyType::MedievalWarfare)
+            }
+            UnitType::Musketman => researched_technologies.contains(&TechnologyType::Gunpowder),
+            UnitType::Rifleman => researched_technologies.contains(&TechnologyType::Ballistics),
+            UnitType::Tank => researched_technologies.contains(&TechnologyType::TanksAndArmor),
+        }
     }
 }
 

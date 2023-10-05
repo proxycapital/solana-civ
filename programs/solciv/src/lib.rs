@@ -3,7 +3,7 @@ mod instructions;
 mod state;
 
 use crate::instructions::*;
-use crate::state::ProductionItem;
+use crate::state::{ProductionItem, TechnologyType};
 use anchor_lang::prelude::*;
 
 declare_id!("GoiXQMoEhhLM8MSbfUFhHz4punJqXNHEQh6ysegmuHJz");
@@ -60,6 +60,13 @@ pub mod solciv {
         item: ProductionItem,
     ) -> Result<()> {
         instructions::purchase_with_gold(ctx, city_id, item)
+    }
+
+    pub fn start_research(
+        ctx: Context<StartResearch>,
+        technology_type: TechnologyType,
+    ) -> Result<()> {
+        instructions::start_research(ctx, technology_type)
     }
 
     pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Result<()> {

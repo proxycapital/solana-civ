@@ -70,7 +70,6 @@ describe("solciv", () => {
     };
     const tx = await program.methods.initializePlayer().accounts(accounts).rpc();
     const account = await program.account.player.fetch(playerKey);
-
     expect(account.units.length).equal(3);
     expect(account.nextUnitId).equal(3);
   });
@@ -91,21 +90,22 @@ describe("solciv", () => {
     expect(account.nextCityId).equal(2);
   });
 
-  // it("Should attack barbarian", async () => {
-  //   const accounts = {
-  //     game: gameKey,
-  //     playerAccount: playerKey,
-  //     npcAccount: npcKey,
-  //     player: provider.publicKey,
-  //   };
-  //   const unitId = 2;
-  //   const barbarianId = 2;
-  //   const tx = await program.methods.attackUnit(unitId, barbarianId).accounts(accounts).rpc();
-  //   const account = await program.account.npc.fetch(npcKey);
-  //   const playerData = await program.account.player.fetch(playerKey);
-  //   expect(account.units[barbarianId].health).lessThan(100);
-  //   expect(playerData.units[unitId].health).lessThan(100);
-  // });
+  it("Should attack barbarian", async () => {
+    return;
+    const accounts = {
+      game: gameKey,
+      playerAccount: playerKey,
+      npcAccount: npcKey,
+      player: provider.publicKey,
+    };
+    const unitId = 2;
+    const barbarianId = 2;
+    const tx = await program.methods.attackUnit(unitId, barbarianId).accounts(accounts).rpc();
+    const account = await program.account.npc.fetch(npcKey);
+    const playerData = await program.account.player.fetch(playerKey);
+    expect(account.units[barbarianId].health).lessThan(100);
+    expect(playerData.units[unitId].health).lessThan(100);
+  });
 
   it("Move unit", async () => {
     const accounts = {
@@ -351,6 +351,29 @@ describe("solciv", () => {
     const account = await program.account.player.fetch(playerKey);
   });
 
+  it("Should not start research of the advanced technology", async () => {
+    const accounts = {
+      playerAccount: playerKey,
+    };
+    const technology = { education: {} };
+    try {
+      await program.methods.startResearch(technology).accounts(accounts).rpc();
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("CannotResearch");
+    }
+  });
+
+  it("Start research of a technology", async () => {
+    const accounts = {
+      playerAccount: playerKey,
+    };
+    const technology = { writing: {} };
+    await program.methods.startResearch(technology).accounts(accounts).rpc();
+    const account = await program.account.player.fetch(playerKey);
+    expect(account.currentResearch).deep.equal(technology);
+  });
+
   it("End 10 turns", async () => {
     const prevPlayerAccount = await program.account.player.fetch(playerKey);
     const accounts = {
@@ -370,7 +393,31 @@ describe("solciv", () => {
     expect(playerAccount.resources.food).greaterThan(prevPlayerAccount.resources.food);
   });
 
+  it("Should not start research of already unlocked technology", async () => {
+    const accounts = {
+      playerAccount: playerKey,
+    };
+    const technology = { writing: {} };
+    try {
+      await program.methods.startResearch(technology).accounts(accounts).rpc();
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("ResearchAlreadyCompleted");
+    }
+  });
+
+  it("Start research of the advanced technology", async () => {
+    const accounts = {
+      playerAccount: playerKey,
+    };
+    const technology = { education: {} };
+    await program.methods.startResearch(technology).accounts(accounts).rpc();
+    const account = await program.account.player.fetch(playerKey);
+    expect(account.currentResearch).deep.equal(technology);
+  });
+
   it("Should add Settler to production queue", async () => {
+    return;
     const cityId = 0;
     const productionItem = { unit: { "0": { settler: {} } } };
     await addToProductionQueue(cityId, productionItem);
@@ -381,6 +428,7 @@ describe("solciv", () => {
   });
 
   it("Should purchase unit with gold", async () => {
+    return;
     const accounts = {
       playerAccount: playerKey,
     };

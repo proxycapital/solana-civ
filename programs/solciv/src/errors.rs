@@ -74,3 +74,19 @@ pub enum CityError {
     #[msg("Not enough gold")]
     InsufficientGold,
 }
+
+#[error_code]
+pub enum ResearchError {
+    #[msg("Invalid research")]
+    InvalidResearch,
+    #[msg("Research already in progress")]
+    AlreadyResearching,
+    #[msg("Research already completed")]
+    ResearchAlreadyCompleted,
+    #[msg("You need to unlock the previous technology first")]
+    CannotResearch,
+    #[msg("Research not complete")]
+    ResearchNotComplete,
+    #[msg("No active research")]
+    NoActiveResearch,
+}

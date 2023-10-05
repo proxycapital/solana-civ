@@ -64,6 +64,8 @@ pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
     ];
     ctx.accounts.player_account.next_unit_id = 3;
 
+    ctx.accounts.player_account.researched_technologies = vec![];
+
     msg!("Player created!");
 
     Ok(())
@@ -291,6 +293,24 @@ pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Re
     }
 
     msg!("Tile upgraded!");
+
+    Ok(())
+}
+
+pub fn start_research(ctx: Context<StartResearch>, technology_type: TechnologyType) -> Result<()> {
+    let player_account = &mut ctx.accounts.player_account;
+
+    // Ensure the research hasn't already been started or completed.
+    if player_account
+        .researched_technologies
+        .contains(&technology_type)
+    {
+        return err!(ResearchError::ResearchAlreadyCompleted);
+    }
+
+    player_account.start_research(technology_type)?;
+
+    msg!("Research started!");
 
     Ok(())
 }
@@ -533,14 +553,15 @@ fn reset_units_movement_range(units: &mut [Unit]) {
     }
 }
 
-fn calculate_resources(player_account: &Player) -> (u32, u32, u32, u32, u32) {
+fn calculate_resources(player_account: &Player) -> (u32, u32, u32, u32, u32, u32) {
     // Calculate resources yielded by cities and tiles.
     // This function will return a tuple (gold, food, wood, stone).
-    let mut resources = (0, 0, 0, 0, 0);
+    let mut resources = (0, 0, 0, 0, 0, 0);
 
     for city in &player_account.cities {
         resources.0 += city.gold_yield;
         resources.1 += city.food_yield;
+        resources.5 += city.science_yield;
     }
 
     for tile in &player_account.tiles {
@@ -718,7 +739,8 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
     reset_units_movement_range(&mut ctx.accounts.player_account.units);
 
     // Calculate and update player's resources
-    let (gold, food, wood, stone, iron) = calculate_resources(&ctx.accounts.player_account);
+    let (gold, food, wood, stone, iron, science) =
+        calculate_resources(&ctx.accounts.player_account);
     ctx.accounts
         .player_account
         .update_resources(gold, food, wood, stone, iron)?;
@@ -730,6 +752,9 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
     // Process the production queues of each city for the player
     let game_key = ctx.accounts.game.key().clone();
     process_production_queues(&mut ctx.accounts.player_account, game_key)?;
+
+    // Check research progress
+    ctx.accounts.player_account.add_research_points(science)?;
 
     // Retain only alive units in the game
     ctx.accounts.player_account.units.retain(|u| u.is_alive);
@@ -926,6 +951,14 @@ pub struct AttackCity<'info> {
     pub player_account: Account<'info, Player>,
     #[account(mut)]
     pub npc_account: Account<'info, Npc>,
+    #[account(mut)]
+    pub player: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct StartResearch<'info> {
+    #[account(mut)]
+    pub player_account: Account<'info, Player>,
     #[account(mut)]
     pub player: Signer<'info>,
 }
