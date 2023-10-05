@@ -334,6 +334,9 @@ pub fn add_to_production_queue(
 
     let total_cost = match &item {
         ProductionItem::Building(building_type) => {
+            if !building_type.can_construct(&player_account.researched_technologies) {
+                return err!(CityError::TechnologyNotResearched);
+            }
             if city.buildings.contains(building_type) {
                 return err!(CityError::BuildingAlreadyExists);
             }
@@ -343,6 +346,9 @@ pub fn add_to_production_queue(
             0 // No cost for building types
         }
         ProductionItem::Unit(unit_type) => {
+            if !unit_type.can_recruit(&player_account.researched_technologies) {
+                return err!(CityError::TechnologyNotResearched);
+            }
             match unit_type {
                 UnitType::Settler => {
                     let settlers_count = player_account.cities.len() as u32
@@ -434,6 +440,8 @@ pub fn purchase_with_gold(
         return err!(CityError::InsufficientGold);
     }
 
+    let researched_technologies = player_account.researched_technologies.clone();
+
     // Deduct the cost from the player's gold balance.
     player_account.resources.gold -= cost;
 
@@ -447,6 +455,10 @@ pub fn purchase_with_gold(
     // Add the unit/building to the player's assets.
     match &item {
         ProductionItem::Building(building_type) => {
+            // Check if the technology is unlocked
+            if !building_type.can_construct(&researched_technologies) {
+                return err!(CityError::TechnologyNotResearched);
+            }
             // Check if the building already exists in the city.
             if city.buildings.contains(building_type) {
                 return err!(CityError::BuildingAlreadyExists);
@@ -461,6 +473,9 @@ pub fn purchase_with_gold(
             city.construct_building(*building_type)?;
         }
         ProductionItem::Unit(unit_type) => {
+            if !unit_type.can_recruit(&researched_technologies) {
+                return err!(CityError::TechnologyNotResearched);
+            }
             let unit = Unit::new(next_unit_id, player, game, *unit_type, city.x, city.y);
             player_account.units.push(unit);
             player_account.next_unit_id += 1;

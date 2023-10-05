@@ -73,6 +73,9 @@ pub enum CityError {
 
     #[msg("Not enough gold")]
     InsufficientGold,
+
+    #[msg("Technology is not unlocked")]
+    TechnologyNotResearched,
 }
 
 #[error_code]

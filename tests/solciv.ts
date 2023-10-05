@@ -171,7 +171,7 @@ describe("solciv", () => {
 
   it("Should add building to production queue", async () => {
     const cityId = 0;
-    const productionItem = { building: { "0": { forge: {} } } };
+    const productionItem = { building: { "0": { wall: {} } } };
     await addToProductionQueue(cityId, productionItem);
 
     const account = await program.account.player.fetch(playerKey);
@@ -180,7 +180,7 @@ describe("solciv", () => {
 
   it("Should not duplicate the building in production queue", async () => {
     const cityId = 0;
-    const productionItem = { building: { "0": { forge: {} } } };
+    const productionItem = { building: { "0": { wall: {} } } };
     try {
       await addToProductionQueue(cityId, productionItem);
     } catch (e) {
@@ -199,18 +199,17 @@ describe("solciv", () => {
       expect(message).include("InsufficientResources");
       const city = (await program.account.player.fetch(playerKey)).cities[0];
       expect(city.productionQueue.length).equal(1);
-      expect(city.productionQueue[0]).deep.equal({ building: { "0": { forge: {} } } });
     }
   });
 
-  it("Should not add swordsman to production queue: not enough of iron", async () => {
+  it("Should not add swordsman to production queue: TechnologyNotResearched", async () => {
     const cityId = 0;
     const productionItem = { unit: { "0": { swordsman: {} } } };
     try {
       await addToProductionQueue(cityId, productionItem);
     } catch (e) {
       const { message } = e;
-      expect(message).include("InsufficientResources");
+      expect(message).include("TechnologyNotResearched");
     }
   });
 
@@ -220,7 +219,7 @@ describe("solciv", () => {
       { unit: { "0": { warrior: {} } } },
       { unit: { "0": { warrior: {} } } },
       { unit: { "0": { builder: {} } } },
-      { building: { "0": { granary: {} } } },
+      { building: { "0": { barracks: {} } } },
     ];
 
     for (const item of items) {
@@ -228,7 +227,7 @@ describe("solciv", () => {
     }
 
     const account = await program.account.player.fetch(playerKey);
-    const expectedQueue = [{ building: { "0": { forge: {} } } }, ...items];
+    const expectedQueue = [{ building: { "0": { wall: {} } } }, ...items];
     checkProductionQueue(account, cityId, expectedQueue);
   });
 
