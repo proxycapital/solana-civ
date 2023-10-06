@@ -373,7 +373,7 @@ describe("solciv", () => {
     expect(account.currentResearch).deep.equal(technology);
   });
 
-  it("End 10 turns", async () => {
+  it("End 15 turns", async () => {
     const prevPlayerAccount = await program.account.player.fetch(playerKey);
     const accounts = {
       game: gameKey,
@@ -382,7 +382,7 @@ describe("solciv", () => {
       npcAccount: npcKey,
     };
 
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= 15; i++) {
       await program.methods.endTurn().accounts(accounts).rpc();
     }
     const account = await program.account.game.fetch(gameKey);

@@ -86,6 +86,7 @@ pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
             2,
             17,
             "Barbarian Village".to_string(),
+            1000,
         ),
         City::new(
             1,
@@ -94,6 +95,7 @@ pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
             17,
             17,
             "Barbarian Village".to_string(),
+            1000,
         ),
     ];
 
@@ -213,6 +215,7 @@ pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: Str
         x,
         y,
         name,
+        100,
     );
 
     ctx.accounts.player_account.cities.push(new_city);
@@ -777,8 +780,8 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
     ctx.accounts.npc_account.units.retain(|u| u.is_alive);
     ctx.accounts.npc_account.cities.retain(|c| c.health > 0);
 
-    // spawn new NPC units every 7 turns
-    if ctx.accounts.game.turn % 7 == 0 {
+    // spawn new NPC units every 15 turns
+    if ctx.accounts.game.turn % 15 == 0 {
         let clock = Clock::get()?;
         let random_factor = clock.unix_timestamp % 10;
 

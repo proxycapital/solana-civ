@@ -253,7 +253,15 @@ impl TechnologyType {
 }
 
 impl City {
-    pub fn new(city_id: u32, player: Pubkey, game: Pubkey, x: u8, y: u8, name: String) -> Self {
+    pub fn new(
+        city_id: u32,
+        player: Pubkey,
+        game: Pubkey,
+        x: u8,
+        y: u8,
+        name: String,
+        health: u32,
+    ) -> Self {
         Self {
             city_id,
             name,
@@ -261,7 +269,7 @@ impl City {
             game,
             x,
             y,
-            health: 100,
+            health,
             attack: 0,
             population: 1,
             gold_yield: 2,
@@ -455,7 +463,7 @@ impl Unit {
             UnitType::Settler => (false, 100, 0, 2, 1, 20, 0, 40),
             UnitType::Builder => (false, 100, 0, 2, 1, 20, 200, 0),
             UnitType::Warrior => (false, 100, 8, 2, 0, 20, 240, 0),
-            UnitType::Archer => (true, 100, 6, 2, 0, 20, 240, 0),
+            UnitType::Archer => (true, 100, 10, 2, 0, 20, 240, 0),
             UnitType::Swordsman => (false, 100, 14, 2, 0, 30, 240, 10),
             UnitType::Crossbowman => (true, 100, 24, 2, 0, 40, 300, 0),
             UnitType::Musketman => (true, 100, 32, 2, 0, 50, 360, 0),
@@ -511,12 +519,18 @@ impl Unit {
         let multiplier: f32 = 0.9 + ((random_factor as f32) * 0.0223);
         // @todo: do we really need the multiplier for the taken damage?
         let taken_damage_multiplier: f32 = 1.0 / multiplier;
-        let given_damage = (30.0
-            * e.powf((self.attack as f32 - defender.attack as f32) / 25.0)
-            * multiplier) as u8;
-        let taken_damage = (30.0
+        let given_damage_raw =
+            30.0 * e.powf((self.attack as f32 - defender.attack as f32) / 25.0) * multiplier
+                - 10.0 * (100.0 - self.health as f32) / 100.0;
+
+        let taken_damage_raw = 30.0
             * e.powf((defender.attack as f32 - self.attack as f32) / 25.0)
-            * taken_damage_multiplier) as u8;
+            * taken_damage_multiplier
+            - 10.0 * (100.0 - defender.health as f32) / 100.0;
+
+        let given_damage = (given_damage_raw.max(0.0).min(255.0)) as u8;
+        let taken_damage = (taken_damage_raw.max(0.0).min(255.0)) as u8;
+
         msg!("Given damage: {}", given_damage);
         msg!("Taken damage: {}", taken_damage);
         // Deduct defender's health by the given damage
