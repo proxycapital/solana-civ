@@ -1,55 +1,56 @@
-use crate::state::*;
 use crate::consts::*;
+use crate::state::*;
 use anchor_lang::prelude::*;
 
 pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
-  ctx.accounts.player_account.game = ctx.accounts.game.key().clone();
-  ctx.accounts.player_account.player = ctx.accounts.player.key().clone();
-  ctx.accounts.player_account.points = 0;
-  ctx.accounts.player_account.next_city_id = 0;
-  ctx.accounts.player_account.next_unit_id = 0;
-  // @todo: consider implementing helper methods for initializing the resources, units or other default things
-  ctx.accounts.player_account.resources = Resources {
-      gold: 0,
-      food: 0,
-      wood: 0,
-      stone: 0,
-      iron: 0,
-  };
-  // player starts with 3 units: Settler, Builder, Warrior
-  ctx.accounts.player_account.units = vec![
-      Unit::new(
-          0,
-          ctx.accounts.player.key().clone(),
-          ctx.accounts.game.key().clone(),
-          UnitType::Settler,
-          2,
-          2,
-      ),
-      Unit::new(
-          1,
-          ctx.accounts.player.key().clone(),
-          ctx.accounts.game.key().clone(),
-          UnitType::Builder,
-          3,
-          2,
-      ),
-      Unit::new(
-          2,
-          ctx.accounts.player.key().clone(),
-          ctx.accounts.game.key().clone(),
-          UnitType::Warrior,
-          2,
-          3,
-      ),
-  ];
-  ctx.accounts.player_account.next_unit_id = 3;
+    ctx.accounts.player_account.game = ctx.accounts.game.key().clone();
+    ctx.accounts.player_account.player = ctx.accounts.player.key().clone();
+    ctx.accounts.player_account.points = 0;
+    ctx.accounts.player_account.next_city_id = 0;
+    ctx.accounts.player_account.next_unit_id = 0;
+    // @todo: consider implementing helper methods for initializing the resources, units or other default things
+    ctx.accounts.player_account.resources = Resources {
+        gold: 0,
+        food: 0,
+        wood: 0,
+        stone: 0,
+        iron: 0,
+        gems: 0,
+    };
+    // player starts with 3 units: Settler, Builder, Warrior
+    ctx.accounts.player_account.units = vec![
+        Unit::new(
+            0,
+            ctx.accounts.player.key().clone(),
+            ctx.accounts.game.key().clone(),
+            UnitType::Settler,
+            2,
+            2,
+        ),
+        Unit::new(
+            1,
+            ctx.accounts.player.key().clone(),
+            ctx.accounts.game.key().clone(),
+            UnitType::Builder,
+            3,
+            2,
+        ),
+        Unit::new(
+            2,
+            ctx.accounts.player.key().clone(),
+            ctx.accounts.game.key().clone(),
+            UnitType::Warrior,
+            2,
+            3,
+        ),
+    ];
+    ctx.accounts.player_account.next_unit_id = 3;
 
-  ctx.accounts.player_account.researched_technologies = vec![];
+    ctx.accounts.player_account.researched_technologies = vec![];
 
-  msg!("Player created!");
+    msg!("Player created!");
 
-  Ok(())
+    Ok(())
 }
 
 #[derive(Accounts)]

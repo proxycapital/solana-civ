@@ -1,7 +1,7 @@
+mod consts;
 mod errors;
 mod instructions;
 mod state;
-mod consts;
 
 use crate::instructions::*;
 use crate::state::{ProductionItem, TechnologyType};

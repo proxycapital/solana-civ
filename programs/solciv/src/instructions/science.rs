@@ -3,21 +3,21 @@ use crate::state::*;
 use anchor_lang::prelude::*;
 
 pub fn start_research(ctx: Context<StartResearch>, technology_type: TechnologyType) -> Result<()> {
-  let player_account = &mut ctx.accounts.player_account;
+    let player_account = &mut ctx.accounts.player_account;
 
-  // Ensure the research hasn't already been started or completed.
-  if player_account
-      .researched_technologies
-      .contains(&technology_type)
-  {
-      return err!(ResearchError::ResearchAlreadyCompleted);
-  }
+    // Ensure the research hasn't already been started or completed.
+    if player_account
+        .researched_technologies
+        .contains(&technology_type)
+    {
+        return err!(ResearchError::ResearchAlreadyCompleted);
+    }
 
-  player_account.start_research(technology_type)?;
+    player_account.start_research(technology_type)?;
 
-  msg!("Research started!");
+    msg!("Research started!");
 
-  Ok(())
+    Ok(())
 }
 
 #[derive(Accounts)]

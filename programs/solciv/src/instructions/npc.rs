@@ -1,50 +1,50 @@
-use crate::state::*;
 use crate::consts::*;
+use crate::state::*;
 use anchor_lang::prelude::*;
 
 pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
-  ctx.accounts.npc_account.game = ctx.accounts.game.key().clone();
-  ctx.accounts.npc_account.player = ctx.accounts.player.key().clone();
-  ctx.accounts.npc_account.next_city_id = 0;
-  ctx.accounts.npc_account.next_unit_id = 0;
-  ctx.accounts.game.npc = ctx.accounts.npc_account.key().clone();
+    ctx.accounts.npc_account.game = ctx.accounts.game.key().clone();
+    ctx.accounts.npc_account.player = ctx.accounts.player.key().clone();
+    ctx.accounts.npc_account.next_city_id = 0;
+    ctx.accounts.npc_account.next_unit_id = 0;
+    ctx.accounts.game.npc = ctx.accounts.npc_account.key().clone();
 
-  ctx.accounts.npc_account.cities = vec![
-      City::new(
-          0,
-          ctx.accounts.npc_account.player.clone(),
-          ctx.accounts.game.key().clone(),
-          2,
-          17,
-          "Barbarian Village".to_string(),
-          1000,
-      ),
-      City::new(
-          1,
-          ctx.accounts.npc_account.player.clone(),
-          ctx.accounts.game.key().clone(),
-          17,
-          17,
-          "Barbarian Village".to_string(),
-          1000,
-      ),
-  ];
+    ctx.accounts.npc_account.cities = vec![
+        City::new(
+            0,
+            ctx.accounts.npc_account.player.clone(),
+            ctx.accounts.game.key().clone(),
+            2,
+            17,
+            "Barbarian Village".to_string(),
+            1000,
+        ),
+        City::new(
+            1,
+            ctx.accounts.npc_account.player.clone(),
+            ctx.accounts.game.key().clone(),
+            17,
+            17,
+            "Barbarian Village".to_string(),
+            1000,
+        ),
+    ];
 
-  // Initialize units for the NPC.
-  ctx.accounts.npc_account.units = vec![Unit::new(
-      0,
-      ctx.accounts.npc_account.key().clone(),
-      ctx.accounts.game.key().clone(),
-      UnitType::Warrior,
-      16,
-      17,
-  )];
-  ctx.accounts.npc_account.next_unit_id = 1;
-  ctx.accounts.npc_account.next_city_id = 2;
+    // Initialize units for the NPC.
+    ctx.accounts.npc_account.units = vec![Unit::new(
+        0,
+        ctx.accounts.npc_account.key().clone(),
+        ctx.accounts.game.key().clone(),
+        UnitType::Warrior,
+        16,
+        17,
+    )];
+    ctx.accounts.npc_account.next_unit_id = 1;
+    ctx.accounts.npc_account.next_city_id = 2;
 
-  msg!("NPC created!");
+    msg!("NPC created!");
 
-  Ok(())
+    Ok(())
 }
 
 #[derive(Accounts)]
