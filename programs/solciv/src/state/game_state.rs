@@ -81,7 +81,7 @@ impl Player {
 
     pub fn complete_research(&mut self) -> Result<()> {
         if let Some(technology) = &self.current_research {
-            if self.research_accumulated_points >= TechnologyType::get_cost(&technology) {
+            if self.research_accumulated_points >= TechnologyType::get_cost(technology) {
                 self.researched_technologies.push(technology.clone());
                 self.current_research = None;
                 self.research_accumulated_points = 0;

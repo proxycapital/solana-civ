@@ -283,7 +283,7 @@ pub fn attack_city(ctx: Context<AttackCity>, attacker_id: u32, city_id: u32) -> 
         attacker.attack_city(target_city)?;
         attacker.movement_range = 0;
 
-        target_city.health <= 0
+        target_city.health == 0
     };
 
     if city_was_destroyed {

@@ -3,8 +3,8 @@ use crate::state::*;
 use anchor_lang::prelude::*;
 
 pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
-    ctx.accounts.player_account.game = ctx.accounts.game.key().clone();
-    ctx.accounts.player_account.player = ctx.accounts.player.key().clone();
+    ctx.accounts.player_account.game = ctx.accounts.game.key();
+    ctx.accounts.player_account.player = ctx.accounts.player.key();
     ctx.accounts.player_account.points = 0;
     ctx.accounts.player_account.next_city_id = 0;
     ctx.accounts.player_account.next_unit_id = 0;
@@ -21,24 +21,24 @@ pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
     ctx.accounts.player_account.units = vec![
         Unit::new(
             0,
-            ctx.accounts.player.key().clone(),
-            ctx.accounts.game.key().clone(),
+            ctx.accounts.player.key(),
+            ctx.accounts.game.key(),
             UnitType::Settler,
             2,
             2,
         ),
         Unit::new(
             1,
-            ctx.accounts.player.key().clone(),
-            ctx.accounts.game.key().clone(),
+            ctx.accounts.player.key(),
+            ctx.accounts.game.key(),
             UnitType::Builder,
             3,
             2,
         ),
         Unit::new(
             2,
-            ctx.accounts.player.key().clone(),
-            ctx.accounts.game.key().clone(),
+            ctx.accounts.player.key(),
+            ctx.accounts.game.key(),
             UnitType::Warrior,
             2,
             3,

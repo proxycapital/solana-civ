@@ -3,7 +3,7 @@ use crate::state::*;
 use anchor_lang::prelude::*;
 
 pub fn initialize_game(ctx: Context<InitializeGame>, map: [u8; 400]) -> Result<()> {
-    ctx.accounts.game.player = ctx.accounts.player.key().clone();
+    ctx.accounts.game.player = ctx.accounts.player.key();
     ctx.accounts.game.turn = 1;
     ctx.accounts.game.map = map;
     ctx.accounts.game.defeat = false;
@@ -46,7 +46,7 @@ fn calculate_resources(player_account: &Player) -> (u32, u32, u32, u32, u32, u32
 fn process_production_queues(player_account: &mut Player, game_key: Pubkey) -> Result<()> {
     let mut new_units = Vec::new();
     let mut next_unit_id = player_account.next_unit_id;
-    let player = player_account.player.clone();
+    let player = player_account.player;
 
     for city in &mut player_account.cities {
         if let Some(item) = city.production_queue.first().cloned() {
@@ -64,8 +64,8 @@ fn process_production_queues(player_account: &mut Player, game_key: Pubkey) -> R
                         // Create a new unit and add it to the player's units
                         let new_unit = Unit::new(
                             next_unit_id,
-                            player.clone(),
-                            game_key.clone(),
+                            player,
+                            game_key,
                             unit_type,
                             city.x,
                             city.y,
@@ -179,7 +179,7 @@ fn process_npc_movements_and_attacks(npc_units: &mut Vec<Unit>, player: &mut Pla
 
                 if new_x < MAP_BOUND
                     && new_y < MAP_BOUND
-                    && !is_occupied(new_x, new_y, &player.units, &npc_units, &player.cities)
+                    && !is_occupied(new_x, new_y, &player.units, npc_units, &player.cities)
                 {
                     npc_units[i].x = new_x;
                     npc_units[i].y = new_y;
@@ -231,7 +231,7 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
     process_npc_movements_and_attacks(&mut ctx.accounts.npc_account.units, player_account)?;
 
     // Process the production queues of each city for the player
-    let game_key = ctx.accounts.game.key().clone();
+    let game_key = ctx.accounts.game.key();
     process_production_queues(&mut ctx.accounts.player_account, game_key)?;
 
     // Check research progress
@@ -262,8 +262,8 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
 
             let new_unit = Unit::new(
                 next_npc_id,
-                ctx.accounts.npc_account.player.clone(),
-                ctx.accounts.game.key().clone(),
+                ctx.accounts.npc_account.player,
+                ctx.accounts.game.key(),
                 unit_type,
                 city.x,
                 city.y,

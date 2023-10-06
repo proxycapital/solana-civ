@@ -115,8 +115,8 @@ pub fn purchase_with_gold(
 ) -> Result<()> {
     let player_account = &mut ctx.accounts.player_account;
     let next_unit_id = player_account.next_unit_id;
-    let player = player_account.player.clone();
-    let game = player_account.game.clone();
+    let player = player_account.player;
+    let game = player_account.game;
     // Determine the cost of the unit/building.
     let cost = match &item {
         ProductionItem::Building(building_type) => BuildingType::get_gold_cost(*building_type),
