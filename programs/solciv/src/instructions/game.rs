@@ -16,11 +16,7 @@ pub fn initialize_game(ctx: Context<InitializeGame>, map: [u8; 400]) -> Result<(
             ctx.accounts.game.map[index].terrain = map[index];
 
             // Mark tiles from (0,0) to (7,7) as discovered
-            if i < 8 && j < 8 {
-                ctx.accounts.game.map[index].discovered = true;
-            } else {
-                ctx.accounts.game.map[index].discovered = false;
-            }
+            ctx.accounts.game.map[index].discovered = i < 8 && j < 8;
         }
     }
 
@@ -168,19 +164,15 @@ fn process_npc_movements_and_attacks(npc_units: &mut Vec<Unit>, player: &mut Pla
                     }
                 }
             } else {
-                let dir_x = if npc_units[i].x < target_x {
-                    1
-                } else if npc_units[i].x > target_x {
-                    -1
-                } else {
-                    0
+                let dir_x = match npc_units[i].x.cmp(&target_x) {
+                    std::cmp::Ordering::Less => 1,
+                    std::cmp::Ordering::Greater => -1,
+                    std::cmp::Ordering::Equal => 0,
                 };
-                let dir_y = if npc_units[i].y < target_y {
-                    1
-                } else if npc_units[i].y > target_y {
-                    -1
-                } else {
-                    0
+                let dir_y = match npc_units[i].y.cmp(&target_y) {
+                    std::cmp::Ordering::Less => 1,
+                    std::cmp::Ordering::Greater => -1,
+                    std::cmp::Ordering::Equal => 0,
                 };
 
                 let new_x = (npc_units[i].x as i16 + dir_x) as u8;
@@ -209,9 +201,9 @@ fn process_npc_movements_and_attacks(npc_units: &mut Vec<Unit>, player: &mut Pla
 fn is_occupied(
     x: u8,
     y: u8,
-    player_units: &Vec<Unit>,
-    npc_units: &Vec<Unit>,
-    player_cities: &Vec<City>,
+    player_units: &[Unit],
+    npc_units: &[Unit],
+    player_cities: &[City],
 ) -> bool {
     player_units
         .iter()

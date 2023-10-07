@@ -68,7 +68,7 @@ pub fn move_unit(ctx: Context<MoveUnit>, unit_id: u32, x: u8, y: u8) -> Result<(
             let dist = ((i as i16 - x as i16).abs() + (j as i16 - y as i16).abs()) as u8;
             if dist <= base_movement_range {
                 let index = (j as usize) * 20 + (i as usize);
-                ctx.accounts.game.map[index as usize].discovered = true;
+                ctx.accounts.game.map[index].discovered = true;
             }
         }
     }
