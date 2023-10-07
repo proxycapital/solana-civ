@@ -93,3 +93,9 @@ pub enum ResearchError {
     #[msg("No active research")]
     NoActiveResearch,
 }
+
+#[error_code]
+pub enum GameError {
+    #[msg("Not enough gems")]
+    NotEnoughGems,
+}

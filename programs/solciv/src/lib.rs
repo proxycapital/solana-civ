@@ -7,7 +7,7 @@ use crate::instructions::*;
 use crate::state::{ProductionItem, TechnologyType};
 use anchor_lang::prelude::*;
 
-declare_id!("GoiXQMoEhhLM8MSbfUFhHz4punJqXNHEQh6ysegmuHJz");
+declare_id!("BqbchBiRnWv7u2n9jBRWdC4bgVG54qpdVEvNPBDxx5Lm");
 
 #[program]
 pub mod solciv {
@@ -80,6 +80,10 @@ pub mod solciv {
 
     pub fn attack_city(ctx: Context<AttackCity>, attacker_id: u32, city_id: u32) -> Result<()> {
         instructions::attack_city(ctx, attacker_id, city_id)
+    }
+    
+    pub fn mint_gems(ctx: Context<MintGems>) -> Result<()> {
+        instructions::mint_gems(ctx)
     }
 
     pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {

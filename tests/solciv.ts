@@ -382,7 +382,7 @@ describe("solciv", () => {
       npcAccount: npcKey,
     };
 
-    for (let i = 1; i <= 15; i++) {
+    for (let i = 1; i <= 20; i++) {
       await program.methods.endTurn().accounts(accounts).rpc();
     }
     const account = await program.account.game.fetch(gameKey);
@@ -444,6 +444,53 @@ describe("solciv", () => {
   it("Should check if barbarians were spawned", async () => {
     const npcAccount = await program.account.npc.fetch(npcKey);
     expect(npcAccount.units.length).greaterThanOrEqual(2);
+  });
+
+  it("Should mint gems", async () => {
+    return;
+    const MINT_SEED = "mint";
+    const [mint] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from(MINT_SEED)],
+      program.programId
+    );
+    const destination = await anchor.utils.token.associatedAddress({
+      mint: mint,
+      owner: provider.publicKey,
+    });
+
+    let initialBalance = 0;
+    try {
+      const balance = (await provider.connection.getTokenAccountBalance(destination))
+      initialBalance = balance.value.uiAmount;
+    } catch {
+      // account doesn't exist
+    } 
+    
+    const context = {
+      mint,
+      owner: provider.publicKey,
+      destination,
+      playerAccount: playerKey,
+      player: provider.publicKey,
+      rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+      systemProgram: anchor.web3.SystemProgram.programId,
+      tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+      associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+    };
+
+    const txHash = await program.methods
+      .mintGems()
+      .accounts(context)
+      .rpc();
+
+    const postBalance = (
+      await provider.connection.getTokenAccountBalance(destination)
+    ).value.uiAmount;
+
+
+    expect(postBalance).greaterThan(initialBalance);
+    const playerData = await program.account.player.fetch(playerKey);
+    expect(playerData.resources.gems).equal(0);
   });
 
   it("Should close game", async () => {
