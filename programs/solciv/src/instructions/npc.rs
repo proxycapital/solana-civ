@@ -49,7 +49,7 @@ pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
 
 #[derive(Accounts)]
 pub struct InitializeNpc<'info> {
-    pub game: Account<'info, Game>,
+    pub game: Box<Account<'info, Game>>,
 
     #[account(
         init,

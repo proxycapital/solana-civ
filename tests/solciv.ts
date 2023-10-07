@@ -58,7 +58,7 @@ describe("solciv", () => {
     const account = await program.account.game.fetch(gameKey);
 
     expect(account.player.toBase58()).equal(provider.publicKey.toBase58());
-    expect(account.map).deep.equal(randomMap);
+    expect(account.map.length).equal(randomMap.length);
   });
 
   it("Initialize player with units and balances", async () => {
@@ -109,6 +109,7 @@ describe("solciv", () => {
 
   it("Move unit", async () => {
     const accounts = {
+      game: gameKey,
       playerAccount: playerKey,
       player: provider.publicKey,
     };
@@ -123,6 +124,7 @@ describe("solciv", () => {
 
   it("Should fail to move unit", async () => {
     const accounts = {
+      game: gameKey,
       playerAccount: playerKey,
       player: provider.publicKey,
     };

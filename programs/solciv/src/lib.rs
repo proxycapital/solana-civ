@@ -81,7 +81,7 @@ pub mod solciv {
     pub fn attack_city(ctx: Context<AttackCity>, attacker_id: u32, city_id: u32) -> Result<()> {
         instructions::attack_city(ctx, attacker_id, city_id)
     }
-    
+
     pub fn mint_gems(ctx: Context<MintGems>) -> Result<()> {
         instructions::mint_gems(ctx)
     }

@@ -55,7 +55,7 @@ pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
 
 #[derive(Accounts)]
 pub struct InitializePlayer<'info> {
-    pub game: Account<'info, Game>,
+    pub game: Box<Account<'info, Game>>,
 
     #[account(
         init,

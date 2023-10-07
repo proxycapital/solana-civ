@@ -9,7 +9,13 @@ pub struct Game {
     pub turn: u32,
     pub defeat: bool,
     pub victory: bool,
-    pub map: [u8; 400],
+    pub map: [Terrain; 400],
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct Terrain {
+    pub terrain: u8,
+    pub discovered: bool,
 }
 
 #[account]

@@ -11,9 +11,10 @@ pub fn move_unit(ctx: Context<MoveUnit>, unit_id: u32, x: u8, y: u8) -> Result<(
         .iter()
         .find(|u| u.unit_id == unit_id)
         .ok_or(UnitError::UnitNotFound)?;
+    let base_movement_range = Unit::get_base_movement_range(unit.unit_type);
 
     // Check if the tile is within the map bounds
-    if x >= 20 || y >= 20 {
+    if x >= MAP_BOUND || y >= MAP_BOUND {
         return err!(UnitError::OutOfMapBounds);
     }
 
@@ -55,6 +56,22 @@ pub fn move_unit(ctx: Context<MoveUnit>, unit_id: u32, x: u8, y: u8) -> Result<(
     ctx.accounts.player_account.units[unit_idx].x = x;
     ctx.accounts.player_account.units[unit_idx].y = y;
     ctx.accounts.player_account.units[unit_idx].movement_range -= dist;
+
+    // Mark tiles within movement range as discovered
+    let start_x = x.saturating_sub(base_movement_range);
+    let end_x = std::cmp::min(x + base_movement_range, 19);
+    let start_y = y.saturating_sub(base_movement_range);
+    let end_y = std::cmp::min(y + base_movement_range, 19);
+
+    for j in start_y..=end_y {
+        for i in start_x..=end_x {
+            let dist = ((i as i16 - x as i16).abs() + (j as i16 - y as i16).abs()) as u8;
+            if dist <= base_movement_range {
+                let index = j * 20 + i;
+                ctx.accounts.game.map[index as usize].discovered = true;
+            }
+        }
+    }
 
     Ok(())
 }
@@ -140,8 +157,8 @@ pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Re
     }
 
     // Check if the tile type is upgradeable and the tile is not occupied by a City or another Tile.
-    let map_idx = (y as usize) * 20 + x as usize;
-    match ctx.accounts.game.map[map_idx] {
+    let map_idx = (y as usize) * MAP_BOUND as usize + x as usize;
+    match ctx.accounts.game.map[map_idx].terrain {
         1 | 2 | 5 | 6 => {} // allowable tile types
         _ => return err!(TileError::NotUpgradeable),
     }
@@ -163,7 +180,7 @@ pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Re
     }
 
     // Initialize the new Tile and push it to player_account tiles vector.
-    let tile_type = match ctx.accounts.game.map[map_idx] {
+    let tile_type = match ctx.accounts.game.map[map_idx].terrain {
         1 => TileType::IronMine,
         2 => TileType::LumberMill,
         5 => TileType::StoneQuarry,
@@ -316,6 +333,8 @@ pub struct FoundCity<'info> {
 #[derive(Accounts)]
 pub struct MoveUnit<'info> {
     #[account(mut)]
+    pub game: Box<Account<'info, Game>>,
+    #[account(mut)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]
     pub player: Signer<'info>,
@@ -324,7 +343,7 @@ pub struct MoveUnit<'info> {
 #[derive(Accounts)]
 pub struct UpgradeTile<'info> {
     #[account(mut)]
-    pub game: Account<'info, Game>,
+    pub game: Box<Account<'info, Game>>,
     #[account(mut)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]
@@ -334,7 +353,7 @@ pub struct UpgradeTile<'info> {
 #[derive(Accounts)]
 pub struct AttackUnit<'info> {
     #[account(mut)]
-    pub game: Account<'info, Game>,
+    pub game: Box<Account<'info, Game>>,
     #[account(mut)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]
@@ -346,7 +365,7 @@ pub struct AttackUnit<'info> {
 #[derive(Accounts)]
 pub struct AttackCity<'info> {
     #[account(mut)]
-    pub game: Account<'info, Game>,
+    pub game: Box<Account<'info, Game>>,
     #[account(mut)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]

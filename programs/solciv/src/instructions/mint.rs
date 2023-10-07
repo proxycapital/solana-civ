@@ -1,33 +1,33 @@
+use crate::errors::GameError;
+use crate::state::Player;
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::{mint_to, Mint, MintTo, Token, TokenAccount},
 };
-use crate::state::Player;
-use crate::errors::GameError;
 
 pub fn mint_gems(ctx: Context<MintGems>) -> Result<()> {
-  if ctx.accounts.player_account.resources.gems == 0 {
-      return err!(GameError::NotEnoughGems)
-  }
-  let seeds = &["mint".as_bytes(), &[*ctx.bumps.get("mint").unwrap()]];
-  let signer = [&seeds[..]];
-  let amount = ctx.accounts.player_account.resources.gems as u64 * 1_000_000_000;
-  ctx.accounts.player_account.resources.gems = 0;
-  mint_to(
-      CpiContext::new_with_signer(
-          ctx.accounts.token_program.to_account_info(),
-          MintTo {
-              authority: ctx.accounts.mint.to_account_info(),
-              to: ctx.accounts.destination.to_account_info(),
-              mint: ctx.accounts.mint.to_account_info(),
-          },
-          &signer,
-      ),
-      amount,
-  )?;
+    if ctx.accounts.player_account.resources.gems == 0 {
+        return err!(GameError::NotEnoughGems);
+    }
+    let seeds = &["mint".as_bytes(), &[*ctx.bumps.get("mint").unwrap()]];
+    let signer = [&seeds[..]];
+    let amount = ctx.accounts.player_account.resources.gems as u64 * 1_000_000_000;
+    ctx.accounts.player_account.resources.gems = 0;
+    mint_to(
+        CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            MintTo {
+                authority: ctx.accounts.mint.to_account_info(),
+                to: ctx.accounts.destination.to_account_info(),
+                mint: ctx.accounts.mint.to_account_info(),
+            },
+            &signer,
+        ),
+        amount,
+    )?;
 
-  Ok(())
+    Ok(())
 }
 
 #[derive(Accounts)]
@@ -46,7 +46,7 @@ pub struct MintGems<'info> {
         associated_token::authority = owner,
     )]
     pub destination: Account<'info, TokenAccount>,
-    /// CHECK: 
+    /// CHECK:
     pub owner: AccountInfo<'info>,
     #[account(mut)]
     pub player_account: Account<'info, Player>,

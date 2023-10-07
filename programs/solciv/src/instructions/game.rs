@@ -5,9 +5,24 @@ use anchor_lang::prelude::*;
 pub fn initialize_game(ctx: Context<InitializeGame>, map: [u8; 400]) -> Result<()> {
     ctx.accounts.game.player = ctx.accounts.player.key();
     ctx.accounts.game.turn = 1;
-    ctx.accounts.game.map = map;
     ctx.accounts.game.defeat = false;
     ctx.accounts.game.victory = false;
+
+    // Set the tiles from 0 to 7 as discovered and initialize all tiles with a terrain type
+    for i in 0..20 {
+        for j in 0..20 {
+            let index = i * 20 + j;
+
+            ctx.accounts.game.map[index].terrain = map[index];
+
+            // Mark tiles from (0,0) to (7,7) as discovered
+            if i < 8 && j < 8 {
+                ctx.accounts.game.map[index].discovered = true;
+            } else {
+                ctx.accounts.game.map[index].discovered = false;
+            }
+        }
+    }
 
     msg!("Game created!");
 
@@ -62,14 +77,8 @@ fn process_production_queues(player_account: &mut Player, game_key: Pubkey) -> R
                 match item {
                     ProductionItem::Unit(unit_type) => {
                         // Create a new unit and add it to the player's units
-                        let new_unit = Unit::new(
-                            next_unit_id,
-                            player,
-                            game_key,
-                            unit_type,
-                            city.x,
-                            city.y,
-                        );
+                        let new_unit =
+                            Unit::new(next_unit_id, player, game_key, unit_type, city.x, city.y);
                         new_units.push(new_unit);
                         next_unit_id += 1;
                     }
@@ -301,7 +310,7 @@ pub struct InitializeGame<'info> {
         payer = player,
         space = std::mem::size_of::<Game>() + 8
     )]
-    pub game: Account<'info, Game>,
+    pub game: Box<Account<'info, Game>>,
     #[account(mut)]
     pub player: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -310,7 +319,7 @@ pub struct InitializeGame<'info> {
 #[derive(Accounts)]
 pub struct EndTurn<'info> {
     #[account(mut)]
-    pub game: Account<'info, Game>,
+    pub game: Box<Account<'info, Game>>,
     #[account(mut)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]
@@ -322,7 +331,7 @@ pub struct EndTurn<'info> {
 #[derive(Accounts)]
 pub struct Close<'info> {
     #[account(mut, close = player, has_one = player)]
-    game: Account<'info, Game>,
+    game: Box<Account<'info, Game>>,
     #[account(mut, close = player, has_one = player)]
     player_account: Account<'info, Player>,
     #[account(mut, close = player, has_one = player)]
