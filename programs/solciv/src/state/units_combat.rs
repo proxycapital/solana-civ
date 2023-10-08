@@ -85,12 +85,12 @@ impl Unit {
     /// `(is_ranged, health, attack, movement_range, remaining_actions, base_production_cost, base_gold_cost, base_resource_cost)`.
     pub fn get_base_stats(unit_type: UnitType) -> (bool, u8, u8, u8, u8, u32, u32, u32) {
         match unit_type {
-            UnitType::Settler => (false, 100, 0, 2, 1, 20, 0, 40),
-            UnitType::Builder => (false, 100, 0, 2, 1, 20, 200, 0),
-            UnitType::Warrior => (false, 100, 8, 2, 0, 20, 240, 0),
-            UnitType::Archer => (true, 100, 10, 2, 0, 20, 240, 0),
+            UnitType::Settler => (false, 100, 0, 2, 1, 20, 100, 60),
+            UnitType::Builder => (false, 100, 0, 2, 1, 20, 100, 0),
+            UnitType::Warrior => (false, 100, 8, 2, 0, 20, 200, 0),
+            UnitType::Archer => (true, 100, 10, 2, 0, 20, 200, 0),
             UnitType::Swordsman => (false, 100, 14, 2, 0, 30, 240, 10),
-            UnitType::Crossbowman => (true, 100, 24, 2, 0, 40, 300, 0),
+            UnitType::Crossbowman => (true, 100, 24, 2, 0, 40, 240, 0),
             UnitType::Musketman => (true, 100, 32, 2, 0, 50, 360, 0),
             UnitType::Rifleman => (true, 100, 40, 3, 0, 60, 420, 0),
             UnitType::Tank => (true, 100, 50, 4, 0, 80, 500, 0),
