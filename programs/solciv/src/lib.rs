@@ -95,4 +95,8 @@ pub mod solciv {
     pub fn close_game(ctx: Context<Close>) -> Result<()> {
         instructions::close_game(ctx)
     }
+
+    pub fn repair_city(ctx: Context<RepairCity>, city_id: u32) -> Result<()> {
+        instructions::repair_city(ctx, city_id)
+    }
 }

@@ -108,6 +108,54 @@ pub fn remove_from_production_queue(
     Ok(())
 }
 
+pub fn repair_city(
+    ctx: Context<RepairCity>,
+    city_id: u32,
+) -> Result<()> {
+    let player_account = &mut ctx.accounts.player_account;
+
+    // 1 hp to repair = 2 wood + 2 stone
+    let mut cost = 0;
+    {
+        // Find the city by city_id.    
+        let city = player_account
+            .cities
+            .iter()
+            .find(|city| city.city_id == city_id)
+            .ok_or(CityError::CityNotFound)?;
+        
+        if city.health == 100 {
+            return err!(CityError::NotDamagedCity);
+        }
+        // Calculate cost of the repair
+        cost = (100 - city.health) * 2;
+    }
+
+    // Check and deduct the player's wood balance.
+    if player_account.resources.wood < cost {
+        return err!(CityError::InsufficientWood);
+    }
+
+    // Check and deduct the player's wood balance.
+    if player_account.resources.stone < cost {
+        return err!(CityError::InsufficientStone);
+    }
+
+    player_account.resources.wood -= cost;
+    player_account.resources.stone -= cost;
+
+    let city = player_account
+        .cities
+        .iter_mut()
+        .find(|city| city.city_id == city_id)
+        .ok_or(CityError::CityNotFound)?;
+    
+    // Set city health to max
+    city.health = 100;
+
+    Ok(())
+}
+
 pub fn purchase_with_gold(
     ctx: Context<PurchaseWithGold>,
     city_id: u32,
@@ -172,6 +220,15 @@ pub fn purchase_with_gold(
 
     Ok(())
 }
+
+#[derive(Accounts)]
+pub struct RepairCity<'info> {
+    #[account(mut)]
+    pub player_account: Account<'info, Player>,
+    #[account(mut)]
+    pub player: Signer<'info>,
+}
+
 
 #[derive(Accounts)]
 pub struct AddToProductionQueue<'info> {

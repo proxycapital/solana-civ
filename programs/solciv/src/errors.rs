@@ -76,7 +76,16 @@ pub enum CityError {
 
     #[msg("Technology is not unlocked")]
     TechnologyNotResearched,
-}
+
+    #[msg("Not enough wood")]
+    InsufficientWood,
+
+    #[msg("Not enough stone")]
+    InsufficientStone,
+
+    #[msg("City not damaged")]
+    NotDamagedCity,
+}   
 
 #[error_code]
 pub enum ResearchError {
