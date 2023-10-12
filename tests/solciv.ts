@@ -284,6 +284,20 @@ describe("solciv", () => {
     }
   });
 
+  it("Should fail to repair wall with wood and stone", async () => {
+    const accounts = {
+      playerAccount: playerKey,
+    };
+    const cityId = 0;
+    try {
+      await program.methods.repairCity(cityId).accounts(accounts).rpc();
+    } catch (e) {
+      const { message } = e;
+      console.log(message);
+      expect(message).include("NotDamagedCity");
+    }
+  });
+
   it("Should not upgrade land tile using Warrior", async () => {
     const accounts = {
       game: gameKey,
