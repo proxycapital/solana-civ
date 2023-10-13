@@ -293,7 +293,6 @@ describe("solciv", () => {
       await program.methods.repairCity(cityId).accounts(accounts).rpc();
     } catch (e) {
       const { message } = e;
-      console.log(message);
       expect(message).include("NotDamagedCity");
     }
   });
@@ -465,10 +464,7 @@ describe("solciv", () => {
   it("Should mint gems", async () => {
     return;
     const MINT_SEED = "mint";
-    const [mint] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from(MINT_SEED)],
-      program.programId
-    );
+    const [mint] = anchor.web3.PublicKey.findProgramAddressSync([Buffer.from(MINT_SEED)], program.programId);
     const destination = await anchor.utils.token.associatedAddress({
       mint: mint,
       owner: provider.publicKey,
@@ -476,12 +472,12 @@ describe("solciv", () => {
 
     let initialBalance = 0;
     try {
-      const balance = (await provider.connection.getTokenAccountBalance(destination))
+      const balance = await provider.connection.getTokenAccountBalance(destination);
       initialBalance = balance.value.uiAmount;
     } catch {
       // account doesn't exist
-    } 
-    
+    }
+
     const context = {
       mint,
       owner: provider.publicKey,
@@ -494,15 +490,9 @@ describe("solciv", () => {
       associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
     };
 
-    const txHash = await program.methods
-      .mintGems()
-      .accounts(context)
-      .rpc();
+    const txHash = await program.methods.mintGems().accounts(context).rpc();
 
-    const postBalance = (
-      await provider.connection.getTokenAccountBalance(destination)
-    ).value.uiAmount;
-
+    const postBalance = (await provider.connection.getTokenAccountBalance(destination)).value.uiAmount;
 
     expect(postBalance).greaterThan(initialBalance);
     const playerData = await program.account.player.fetch(playerKey);

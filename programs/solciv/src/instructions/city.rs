@@ -108,48 +108,42 @@ pub fn remove_from_production_queue(
     Ok(())
 }
 
-pub fn repair_city(
-    ctx: Context<RepairCity>,
-    city_id: u32,
-) -> Result<()> {
+pub fn repair_city(ctx: Context<RepairCity>, city_id: u32) -> Result<()> {
     let player_account = &mut ctx.accounts.player_account;
 
-    // 1 hp to repair = 2 wood + 2 stone
-    let mut cost = 0;
-    {
-        // Find the city by city_id.    
-        let city = player_account
-            .cities
-            .iter()
-            .find(|city| city.city_id == city_id)
-            .ok_or(CityError::CityNotFound)?;
-        
-        if city.health == 100 {
-            return err!(CityError::NotDamagedCity);
-        }
-        // Calculate cost of the repair
-        cost = (100 - city.health) * 2;
+    // Find the city by city_id
+    let health = player_account
+        .cities
+        .iter()
+        .find(|city| city.city_id == city_id)
+        .map(|city| city.health)
+        .ok_or(CityError::CityNotFound)?;
+
+    if health == 100 {
+        return err!(CityError::NotDamagedCity);
     }
 
-    // Check and deduct the player's wood balance.
+    // Calculate cost of the repair: 1 hp to repair = 2 wood + 2 stone
+    let cost = (100 - health) * 2;
+
+    // Check and deduct the player's resources.
     if player_account.resources.wood < cost {
         return err!(CityError::InsufficientWood);
     }
+    player_account.resources.wood -= cost;
 
-    // Check and deduct the player's wood balance.
     if player_account.resources.stone < cost {
         return err!(CityError::InsufficientStone);
     }
-
-    player_account.resources.wood -= cost;
     player_account.resources.stone -= cost;
 
+    // Find the city, mutable borrow, and repair it.
     let city = player_account
         .cities
         .iter_mut()
         .find(|city| city.city_id == city_id)
         .ok_or(CityError::CityNotFound)?;
-    
+
     // Set city health to max
     city.health = 100;
 
@@ -228,7 +222,6 @@ pub struct RepairCity<'info> {
     #[account(mut)]
     pub player: Signer<'info>,
 }
-
 
 #[derive(Accounts)]
 pub struct AddToProductionQueue<'info> {

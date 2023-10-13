@@ -46,7 +46,8 @@ pub struct MintGems<'info> {
         associated_token::authority = owner,
     )]
     pub destination: Account<'info, TokenAccount>,
-    /// CHECK:
+    /// CHECK: this can be any personal address of the player
+    /// it's important to check the signer, while recipient of gems can be any address
     pub owner: AccountInfo<'info>,
     #[account(mut)]
     pub player_account: Account<'info, Player>,

@@ -85,7 +85,7 @@ pub enum CityError {
 
     #[msg("City not damaged")]
     NotDamagedCity,
-}   
+}
 
 #[error_code]
 pub enum ResearchError {
