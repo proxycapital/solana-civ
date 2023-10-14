@@ -4,6 +4,11 @@ Fully on-chain proof of concept inspired by Sid Meier's Civilization.
 In SolanaCiv, players use smart contracts to manage their civilization by building structures, recruiting workers and units, and fighting off barbarians.
 Players earn resources (SPL tokens) like gold, food, and lumber through smart contract that simulate resource generation. The game is turn-based, with each turn representing 1 day. Players can perform many actions (transactions) per turn: move units, build, fight, upgrade and more.
 
+#### Audit
+Program is audited by sec3 X-ray scanner. Report is available here: [sec3-report.pdf](./sec3-report.pdf)
+
+The reported issue is false positive, as the unchecked account is needed for withdrawals from burner to any Solana address.
+
 #### Run locally
 ```
 anchor build && anchor test
