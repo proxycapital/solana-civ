@@ -98,9 +98,15 @@ anchor build && anchor test
 - Player wins when all enemies are defeated.
 - Player can restart the game with a new generated map at any time.
 
-## Future expansions
-- Multiplayer.
-- More technologies, resources, constructions and unit types.
-- More land types including sea and different islands.
-- Alliance and trading mechanisms.
-- And more!
+## Roadmap & future expansions
+- Multiplayer mechanics, match-making
+- Enhanced in-game reward system, DEX
+- Assets store for third-party content creators and developers
+- Mobile app (the game is already playable on mobile via web browser)
+- New game mechanics:
+  - Alliances and diplomacy
+  - A greater variety of land tiles, resources, units, buildings, and technologies
+  - Distinct nations
+  - Culture and tourism mechanics
+  - Story mode
+  - And much more, this is only the beginning ;)
