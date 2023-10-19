@@ -217,7 +217,7 @@ pub fn purchase_with_gold(
 
 #[derive(Accounts)]
 pub struct RepairCity<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]
     pub player: Signer<'info>,
@@ -225,7 +225,7 @@ pub struct RepairCity<'info> {
 
 #[derive(Accounts)]
 pub struct AddToProductionQueue<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]
     pub player: Signer<'info>,
@@ -233,7 +233,7 @@ pub struct AddToProductionQueue<'info> {
 
 #[derive(Accounts)]
 pub struct RemoveFromProductionQueue<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]
     pub player: Signer<'info>,
@@ -241,7 +241,7 @@ pub struct RemoveFromProductionQueue<'info> {
 
 #[derive(Accounts)]
 pub struct PurchaseWithGold<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]
     pub player: Signer<'info>,

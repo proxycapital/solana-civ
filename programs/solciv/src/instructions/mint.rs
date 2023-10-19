@@ -49,7 +49,7 @@ pub struct MintGems<'info> {
     /// CHECK: this can be any personal address of the player
     /// it's important to check the signer, while recipient of gems can be any address
     pub owner: AccountInfo<'info>,
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]
     pub player: Signer<'info>,

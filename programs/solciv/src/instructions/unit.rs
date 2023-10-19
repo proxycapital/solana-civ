@@ -348,9 +348,9 @@ pub fn attack_city(ctx: Context<AttackCity>, attacker_id: u32, city_id: u32) -> 
 
 #[derive(Accounts)]
 pub struct FoundCity<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub game: Account<'info, Game>,
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]
     pub player: Signer<'info>,
@@ -359,9 +359,9 @@ pub struct FoundCity<'info> {
 
 #[derive(Accounts)]
 pub struct MoveUnit<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub game: Box<Account<'info, Game>>,
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]
     pub player: Signer<'info>,
@@ -369,7 +369,7 @@ pub struct MoveUnit<'info> {
 
 #[derive(Accounts)]
 pub struct HealUnit<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]
     pub player: Signer<'info>,
@@ -377,9 +377,9 @@ pub struct HealUnit<'info> {
 
 #[derive(Accounts)]
 pub struct UpgradeTile<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub game: Box<Account<'info, Game>>,
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]
     pub player: Signer<'info>,
@@ -387,11 +387,11 @@ pub struct UpgradeTile<'info> {
 
 #[derive(Accounts)]
 pub struct AttackUnit<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub game: Box<Account<'info, Game>>,
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub player_account: Account<'info, Player>,
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub npc_account: Account<'info, Npc>,
     #[account(mut)]
     pub player: Signer<'info>,
@@ -399,11 +399,11 @@ pub struct AttackUnit<'info> {
 
 #[derive(Accounts)]
 pub struct AttackCity<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub game: Box<Account<'info, Game>>,
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub player_account: Account<'info, Player>,
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub npc_account: Account<'info, Npc>,
     #[account(mut)]
     pub player: Signer<'info>,

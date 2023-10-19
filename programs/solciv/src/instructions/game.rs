@@ -310,11 +310,11 @@ pub struct InitializeGame<'info> {
 
 #[derive(Accounts)]
 pub struct EndTurn<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub game: Box<Account<'info, Game>>,
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub player_account: Account<'info, Player>,
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub npc_account: Account<'info, Npc>,
     #[account(mut)]
     pub player: Signer<'info>,

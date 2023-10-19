@@ -22,7 +22,7 @@ pub fn start_research(ctx: Context<StartResearch>, technology_type: TechnologyTy
 
 #[derive(Accounts)]
 pub struct StartResearch<'info> {
-    #[account(mut)]
+    #[account(mut, has_one = player)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]
     pub player: Signer<'info>,
