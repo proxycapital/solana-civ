@@ -244,8 +244,8 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
     ctx.accounts.npc_account.units.retain(|u| u.is_alive);
     ctx.accounts.npc_account.cities.retain(|c| c.health > 0);
 
-    // spawn new NPC units every 15 turns
-    if ctx.accounts.game.turn % 15 == 0 {
+    // spawn new NPC units every 25 turns
+    if ctx.accounts.game.turn % 25 == 0 {
         let clock = Clock::get()?;
         let random_factor = clock.unix_timestamp % 10;
 
