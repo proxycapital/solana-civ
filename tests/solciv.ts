@@ -122,6 +122,20 @@ describe("solciv", () => {
     expect(account.units[unitId].y).equal(y);
   });
 
+  it("Should fail to heal healthy unit", async () => {
+    const accounts = {
+      playerAccount: playerKey,
+      player: provider.publicKey,
+    };
+    const unitId = 2;
+    try {
+      await program.methods.healUnit(unitId).accounts(accounts).rpc();
+    } catch (e) {
+      const { message } = e;
+      expect(message).include("UnitNotDamaged");
+    }
+  });
+
   it("Should fail to move unit", async () => {
     const accounts = {
       game: gameKey,

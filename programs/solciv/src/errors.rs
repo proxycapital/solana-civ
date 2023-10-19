@@ -31,6 +31,12 @@ pub enum UnitError {
 
     #[msg("No movement points left this turn")]
     NoMovementPoints,
+
+    #[msg("Unit is not damaged")]
+    UnitNotDamaged,
+
+    #[msg("Not enough of food to heal the unit")]
+    NotEnoughResources,
 }
 
 #[error_code]
