@@ -53,7 +53,10 @@ fn calculate_resources(player_account: &Player) -> (i32, u32, u32, u32, u32, u32
 
     // Deduct unit maintenance costs from gold yield
     for unit in &player_account.units {
-        resources.0 = resources.0.checked_sub(unit.maintenance_cost).unwrap_or(i32::MIN);
+        resources.0 = resources
+            .0
+            .checked_sub(unit.maintenance_cost)
+            .unwrap_or(i32::MIN);
     }
 
     resources

@@ -116,6 +116,10 @@ impl Unit {
         Unit::get_base_stats(unit_type).3
     }
 
+    pub fn get_maintenance_cost(unit_type: UnitType) -> i32 {
+        Unit::get_base_stats(unit_type).8
+    }
+
     fn can_attack(&self) -> bool {
         // only 2 units cannot attack: Settler and Builder
         !matches!(self.unit_type, UnitType::Settler | UnitType::Builder)

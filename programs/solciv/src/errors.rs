@@ -91,6 +91,9 @@ pub enum CityError {
 
     #[msg("City not damaged")]
     NotDamagedCity,
+
+    #[msg("Not enough gold for maintenance")]
+    InsufficientGoldForMaintenance,
 }
 
 #[error_code]

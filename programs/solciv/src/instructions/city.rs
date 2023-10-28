@@ -20,6 +20,15 @@ pub fn add_to_production_queue(
         return err!(CityError::QueueFull);
     }
 
+    let maintenance_cost = if let ProductionItem::Unit(unit_type) = &item {
+        Unit::get_maintenance_cost(*unit_type)
+    } else {
+        0
+    };
+    if maintenance_cost > 0 && player_account.resources.gold < 0 {
+        return err!(CityError::InsufficientGoldForMaintenance);
+    }
+
     let total_cost = match &item {
         ProductionItem::Building(building_type) => {
             if !building_type.can_construct(&player_account.researched_technologies) {
@@ -161,7 +170,9 @@ pub fn purchase_with_gold(
     let game = player_account.game;
     // Determine the cost of the unit/building.
     let cost = match &item {
-        ProductionItem::Building(building_type) => BuildingType::get_gold_cost(*building_type) as i32,
+        ProductionItem::Building(building_type) => {
+            BuildingType::get_gold_cost(*building_type) as i32
+        }
         ProductionItem::Unit(unit_type) => Unit::get_gold_cost(*unit_type) as i32,
     };
 
