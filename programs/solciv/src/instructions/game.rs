@@ -31,13 +31,13 @@ fn reset_units_movement_range(units: &mut [Unit]) {
     }
 }
 
-fn calculate_resources(player_account: &Player) -> (u32, u32, u32, u32, u32, u32) {
+fn calculate_resources(player_account: &Player) -> (i32, u32, u32, u32, u32, u32) {
     // Calculate resources yielded by cities and tiles.
-    // This function will return a tuple (gold, food, wood, stone).
-    let mut resources = (0, 0, 0, 0, 0, 0);
+    // This function will return a tuple (gold, food, wood, stone, iron, science).
+    let mut resources: (i32, u32, u32, u32, u32, u32) = (0, 0, 0, 0, 0, 0);
 
     for city in &player_account.cities {
-        resources.0 += city.gold_yield;
+        resources.0 += city.gold_yield as i32;
         resources.1 += city.food_yield;
         resources.5 += city.science_yield;
     }
@@ -49,6 +49,11 @@ fn calculate_resources(player_account: &Player) -> (u32, u32, u32, u32, u32, u32
             TileType::Farm => resources.1 += 2,
             TileType::IronMine => resources.4 += 2,
         }
+    }
+
+    // Deduct unit maintenance costs from gold yield
+    for unit in &player_account.units {
+        resources.0 = resources.0.checked_sub(unit.maintenance_cost).unwrap_or(i32::MIN);
     }
 
     resources

@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone)]
 pub struct Resources {
-    pub gold: u32,
+    pub gold: i32,
     pub food: u32,
     pub wood: u32,
     pub stone: u32,

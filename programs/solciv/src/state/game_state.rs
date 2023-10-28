@@ -47,13 +47,15 @@ pub struct Npc {
 impl Player {
     pub fn update_resources(
         &mut self,
-        gold: u32,
+        gold: i32,
         food: u32,
         wood: u32,
         stone: u32,
         iron: u32,
     ) -> Result<()> {
-        self.resources.gold = self.resources.gold.checked_add(gold).unwrap_or(u32::MAX);
+        self.resources.gold = self.resources.gold.checked_add(gold).unwrap_or_else(|| {
+            if gold > 0 { i32::MAX } else { i32::MIN }
+        });
         self.resources.food = self.resources.food.checked_add(food).unwrap_or(u32::MAX);
         self.resources.wood = self.resources.wood.checked_add(wood).unwrap_or(u32::MAX);
         self.resources.stone = self.resources.stone.checked_add(stone).unwrap_or(u32::MAX);

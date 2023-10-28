@@ -161,8 +161,8 @@ pub fn purchase_with_gold(
     let game = player_account.game;
     // Determine the cost of the unit/building.
     let cost = match &item {
-        ProductionItem::Building(building_type) => BuildingType::get_gold_cost(*building_type),
-        ProductionItem::Unit(unit_type) => Unit::get_gold_cost(*unit_type),
+        ProductionItem::Building(building_type) => BuildingType::get_gold_cost(*building_type) as i32,
+        ProductionItem::Unit(unit_type) => Unit::get_gold_cost(*unit_type) as i32,
     };
 
     // Check the player's gold balance.
