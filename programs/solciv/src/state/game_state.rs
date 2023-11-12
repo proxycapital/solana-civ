@@ -108,19 +108,21 @@ impl Player {
 
     pub fn can_research(&self, tech: &TechnologyType) -> bool {
         let prev_tech = match tech {
-            TechnologyType::Archery => return true,
+            TechnologyType::AnimalHusbandry | TechnologyType::Writing | TechnologyType::Agriculture => {
+                return true
+            },
+            TechnologyType::Archery => TechnologyType::AnimalHusbandry,
+            TechnologyType::HorsebackRiding => TechnologyType::Archery,
             TechnologyType::IronWorking => TechnologyType::Archery,
             TechnologyType::MedievalWarfare => TechnologyType::IronWorking,
             TechnologyType::Gunpowder => TechnologyType::MedievalWarfare,
             TechnologyType::Ballistics => TechnologyType::Gunpowder,
             TechnologyType::TanksAndArmor => TechnologyType::Ballistics,
-            TechnologyType::Writing => return true,
             TechnologyType::Education => TechnologyType::Writing,
             TechnologyType::Economics => TechnologyType::Education,
             TechnologyType::Academia => TechnologyType::Economics,
             TechnologyType::Astronomy => TechnologyType::Academia,
             TechnologyType::Capitalism => TechnologyType::Astronomy,
-            TechnologyType::Agriculture => return true,
             TechnologyType::Construction => TechnologyType::Agriculture,
             TechnologyType::Industrialization => TechnologyType::Construction,
             TechnologyType::ElectricalPower => TechnologyType::Industrialization,
