@@ -52,6 +52,7 @@ impl Player {
         wood: u32,
         stone: u32,
         iron: u32,
+        horses: u32,
     ) -> Result<()> {
         self.resources.gold = self.resources.gold.checked_add(gold).unwrap_or({
             if gold > 0 {
@@ -64,6 +65,7 @@ impl Player {
         self.resources.wood = self.resources.wood.checked_add(wood).unwrap_or(u32::MAX);
         self.resources.stone = self.resources.stone.checked_add(stone).unwrap_or(u32::MAX);
         self.resources.iron = self.resources.iron.checked_add(iron).unwrap_or(u32::MAX);
+        self.resources.horses = self.resources.horses.checked_add(horses).unwrap_or(u32::MAX);
         Ok(())
     }
 

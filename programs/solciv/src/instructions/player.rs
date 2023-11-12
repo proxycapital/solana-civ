@@ -16,6 +16,7 @@ pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
         stone: 0,
         iron: 0,
         gems: 0,
+        horses: 0,
     };
     // player starts with 3 units: Settler, Builder, Warrior
     ctx.accounts.player_account.units = vec![

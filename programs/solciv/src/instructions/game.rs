@@ -31,15 +31,15 @@ fn reset_units_movement_range(units: &mut [Unit]) {
     }
 }
 
-fn calculate_resources(player_account: &Player) -> (i32, u32, u32, u32, u32, u32) {
+fn calculate_resources(player_account: &Player) -> (i32, u32, u32, u32, u32, u32, u32) {
     // Calculate resources yielded by cities and tiles.
-    // This function will return a tuple (gold, food, wood, stone, iron, science).
-    let mut resources: (i32, u32, u32, u32, u32, u32) = (0, 0, 0, 0, 0, 0);
+    // This function will return a tuple (gold, food, wood, stone, iron, horses, science).
+    let mut resources: (i32, u32, u32, u32, u32, u32, u32) = (0, 0, 0, 0, 0, 0, 0);
 
     for city in &player_account.cities {
         resources.0 += city.gold_yield as i32;
         resources.1 += city.food_yield;
-        resources.5 += city.science_yield;
+        resources.6 += city.science_yield;
     }
 
     for tile in &player_account.tiles {
@@ -48,6 +48,7 @@ fn calculate_resources(player_account: &Player) -> (i32, u32, u32, u32, u32, u32
             TileType::StoneQuarry => resources.3 += 2,
             TileType::Farm => resources.1 += 2,
             TileType::IronMine => resources.4 += 2,
+            TileType::Pasture => resources.5 += 2,
         }
     }
 
@@ -229,11 +230,11 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
     reset_units_movement_range(&mut ctx.accounts.player_account.units);
 
     // Calculate and update player's resources
-    let (gold, food, wood, stone, iron, science) =
+    let (gold, food, wood, stone, iron, horses, science) =
         calculate_resources(&ctx.accounts.player_account);
     ctx.accounts
         .player_account
-        .update_resources(gold, food, wood, stone, iron)?;
+        .update_resources(gold, food, wood, stone, iron, horses)?;
 
     let player_account = &mut ctx.accounts.player_account;
 
