@@ -186,7 +186,7 @@ pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Re
     // Check if the tile type is upgradeable and the tile is not occupied by a City or another Tile.
     let map_idx = (y as usize) * MAP_BOUND as usize + x as usize;
     match ctx.accounts.game.map[map_idx].terrain {
-        1 | 2 | 5 | 6 => {} // allowable tile types
+        1 | 2 | 5 | 6 | 7 => {} // allowable tile types
         _ => return err!(TileError::NotUpgradeable),
     }
 
@@ -212,6 +212,7 @@ pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Re
         2 => TileType::LumberMill,
         5 => TileType::StoneQuarry,
         6 => TileType::Farm,
+        7 => TileType::Pasture,
         // we've already checked the tile type above, if there was no match, we would have returned an error NotUpgradeable
         _ => unreachable!(),
     };
