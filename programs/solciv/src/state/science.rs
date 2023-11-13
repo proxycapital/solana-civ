@@ -2,7 +2,9 @@ use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Debug)]
 pub enum TechnologyType {
+    AnimalHusbandry,
     Archery,
+    HorsebackRiding,
     IronWorking,
     MedievalWarfare,
     Gunpowder,
@@ -24,7 +26,9 @@ pub enum TechnologyType {
 impl TechnologyType {
     pub fn get_cost(tech_type: &TechnologyType) -> u32 {
         match tech_type {
-            TechnologyType::Archery => 15,
+            TechnologyType::AnimalHusbandry => 7,
+            TechnologyType::Archery => 10,
+            TechnologyType::HorsebackRiding => 20,
             TechnologyType::IronWorking => 21,
             TechnologyType::MedievalWarfare => 30,
             TechnologyType::Gunpowder => 42,

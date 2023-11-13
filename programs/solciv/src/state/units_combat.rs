@@ -33,6 +33,7 @@ pub enum UnitType {
     Musketman,
     Rifleman,
     Tank,
+    Horseman,
 }
 
 impl Unit {
@@ -93,6 +94,7 @@ impl Unit {
             UnitType::Warrior => (false, 100, 8, 2, 0, 20, 200, 0, 0),
             UnitType::Archer => (true, 100, 10, 2, 0, 20, 200, 0, 1),
             UnitType::Swordsman => (false, 100, 14, 2, 0, 30, 240, 10, 1),
+            UnitType::Horseman => (false, 100, 14, 3, 0, 30, 280, 10, 2),
             UnitType::Crossbowman => (true, 100, 24, 2, 0, 40, 240, 0, 2),
             UnitType::Musketman => (true, 100, 32, 2, 0, 50, 360, 0, 2),
             UnitType::Rifleman => (true, 100, 40, 3, 0, 60, 420, 0, 4),
@@ -242,6 +244,7 @@ impl UnitType {
         match self {
             UnitType::Settler | UnitType::Builder | UnitType::Warrior => true, // No tech required
             UnitType::Archer => researched_technologies.contains(&TechnologyType::Archery),
+            UnitType::Horseman => researched_technologies.contains(&TechnologyType::HorsebackRiding),
             UnitType::Swordsman => researched_technologies.contains(&TechnologyType::IronWorking),
             UnitType::Crossbowman => {
                 researched_technologies.contains(&TechnologyType::MedievalWarfare)

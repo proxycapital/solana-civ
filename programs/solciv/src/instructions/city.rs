@@ -57,6 +57,7 @@ pub fn add_to_production_queue(
                     settlers_count * Unit::get_resource_cost(*unit_type)
                 }
                 UnitType::Swordsman => Unit::get_resource_cost(*unit_type),
+                UnitType::Horseman => Unit::get_resource_cost(*unit_type),
                 _ => 0, // No resource cost for other unit types
             }
         }
@@ -67,6 +68,7 @@ pub fn add_to_production_queue(
         let resource_type = match &item {
             ProductionItem::Unit(UnitType::Settler) => &mut player_account.resources.food,
             ProductionItem::Unit(UnitType::Swordsman) => &mut player_account.resources.iron,
+            ProductionItem::Unit(UnitType::Horseman) => &mut player_account.resources.horses,
             // can this really happen?
             _ => return err!(CityError::InvalidItem),
         };

@@ -8,6 +8,7 @@ pub struct Resources {
     pub stone: u32,
     pub iron: u32,
     pub gems: u32,
+    pub horses: u32,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -23,6 +24,7 @@ pub enum TileType {
     StoneQuarry,
     Farm,
     IronMine,
+    Pasture,
 }
 
 impl Tile {
