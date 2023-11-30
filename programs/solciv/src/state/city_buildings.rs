@@ -10,6 +10,7 @@ pub struct City {
     pub x: u8,
     pub y: u8,
     pub health: u32,
+    pub wall_health: u32,
     pub attack: u32,
     pub population: u32,
     pub gold_yield: u32,
@@ -68,6 +69,7 @@ impl City {
             x,
             y,
             health,
+            wall_health: 0,
             attack: 0,
             population: 1,
             gold_yield: 2,
@@ -85,15 +87,19 @@ impl City {
             BuildingType::Barracks => self.attack += 2,
             BuildingType::Wall => {
                 self.attack += 5;
+                self.wall_health += 50;
             }
             BuildingType::WallMedieval => {
                 self.attack += 5;
+                self.wall_health += 50;
             }
             BuildingType::WallRenaissance => {
                 self.attack += 10;
+                self.wall_health += 75;
             }
             BuildingType::WallIndustrial => {
                 self.attack += 10;
+                self.wall_health += 75;
             }
             BuildingType::Library => self.science_yield += 2,
             BuildingType::School => self.science_yield += 3,
