@@ -87,19 +87,19 @@ impl City {
             BuildingType::Barracks => self.attack += 2,
             BuildingType::Wall => {
                 self.attack += 5;
-                self.wall_health += 50;
+                self.wall_health = 50;
             }
             BuildingType::WallMedieval => {
                 self.attack += 5;
-                self.wall_health += 50;
+                self.wall_health = 100;
             }
             BuildingType::WallRenaissance => {
                 self.attack += 10;
-                self.wall_health += 75;
+                self.wall_health = 150;
             }
             BuildingType::WallIndustrial => {
                 self.attack += 10;
-                self.wall_health += 75;
+                self.wall_health = 200;
             }
             BuildingType::Library => self.science_yield += 2,
             BuildingType::School => self.science_yield += 3,

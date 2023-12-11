@@ -125,9 +125,6 @@ pub fn repair_wall(
 ) -> Result<()> {
     let player_account: &mut Account<'_, Player> = &mut ctx.accounts.player_account;
 
-
-    // get a level of city wall to set max hp
-
     // 1 hp to repair = 2 wood + 2 stone
     let mut cost = 0;
     let mut max_wall_hp = 0;
@@ -142,14 +139,14 @@ pub fn repair_wall(
         
 
         // check if city has any level of wall wall (any of them)
-        if city.buildings.contains(&BuildingType::Wall) {
-            max_wall_hp = 50;
-        } else if city.buildings.contains(&BuildingType::WallMedieval) {
-            max_wall_hp = 100;
+        if city.buildings.contains(&BuildingType::WallIndustrial) {
+            max_wall_hp = 200;
         } else if city.buildings.contains(&BuildingType::WallRenaissance) {
             max_wall_hp = 150;
-        } else if city.buildings.contains(&BuildingType::WallIndustrial) {
-            max_wall_hp = 200;
+        } else if city.buildings.contains(&BuildingType::WallMedieval) {
+            max_wall_hp = 100;
+        } else if city.buildings.contains(&BuildingType::Wall) {
+            max_wall_hp = 50;
         } else {
             // no wall in the city
             return err!(CityError::NoWall);

@@ -261,7 +261,7 @@ pub fn attack_unit(ctx: Context<AttackUnit>, attacker_id: u32, defender_id: u32)
         return err!(UnitError::OutOfAttackRange);
     }
 
-    attacker.attack_unit(defender)?;
+    attacker.attack_unit(defender, None)?;
     if !defender.is_alive {
         ctx.accounts.player_account.resources.gems = ctx
             .accounts
