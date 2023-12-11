@@ -127,7 +127,6 @@ impl Unit {
         !matches!(self.unit_type, UnitType::Settler | UnitType::Builder)
     }
 
-    // &Option<&mut city_buildings::City>
     pub fn attack_unit(&mut self, defender: &mut Unit, defender_behind_the_wall: Option<bool>) -> Result<()> {
         // Check if the attacker is alive and of attacking type
         if !self.is_alive || !self.can_attack() {
