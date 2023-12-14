@@ -127,7 +127,11 @@ impl Unit {
         !matches!(self.unit_type, UnitType::Settler | UnitType::Builder)
     }
 
-    pub fn attack_unit(&mut self, defender: &mut Unit, defender_behind_the_wall: Option<bool>) -> Result<()> {
+    pub fn attack_unit(
+        &mut self,
+        defender: &mut Unit,
+        defender_behind_the_wall: Option<bool>,
+    ) -> Result<()> {
         // Check if the attacker is alive and of attacking type
         if !self.is_alive || !self.can_attack() {
             return err!(UnitError::InvalidAttack);
@@ -159,7 +163,7 @@ impl Unit {
 
         if defender_behind_the_wall.is_some() {
             // decrease given damage by 2 if defender unit behind the wall
-            given_damage_raw = given_damage_raw / 2.0;
+            given_damage_raw /= 2.0;
         }
 
         let taken_damage_raw = 30.0
@@ -201,7 +205,7 @@ impl Unit {
         if !self.is_alive || !self.can_attack() {
             return err!(UnitError::InvalidAttack);
         }
-        
+
         // by default city don't have any defence
         let mut city_defense = 0;
         if city.wall_health != 0 {
@@ -248,7 +252,6 @@ impl Unit {
             }
         }
 
-
         if taken_damage >= self.health {
             self.is_alive = false;
             self.health = 0;
@@ -270,7 +273,9 @@ impl UnitType {
         match self {
             UnitType::Settler | UnitType::Builder | UnitType::Warrior => true, // No tech required
             UnitType::Archer => researched_technologies.contains(&TechnologyType::Archery),
-            UnitType::Horseman => researched_technologies.contains(&TechnologyType::HorsebackRiding),
+            UnitType::Horseman => {
+                researched_technologies.contains(&TechnologyType::HorsebackRiding)
+            }
             UnitType::Swordsman => researched_technologies.contains(&TechnologyType::IronWorking),
             UnitType::Crossbowman => {
                 researched_technologies.contains(&TechnologyType::MedievalWarfare)

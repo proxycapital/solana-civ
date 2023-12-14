@@ -148,13 +148,10 @@ fn process_npc_movements_and_attacks(npc_units: &mut Vec<Unit>, player: &mut Pla
                 let is_player_unit = player
                     .units
                     .iter_mut()
-                    .find(|u| u.x == target_x && u.y == target_y)
-                    .is_some();
-                let is_city_with_wall = player
-                    .cities
-                    .iter_mut()
-                    .find(|c| c.x == target_x && c.y == target_y && c.health > 0 && c.wall_health > 0)
-                    .is_some();
+                    .any(|u| u.x == target_x && u.y == target_y);
+                let is_city_with_wall = player.cities.iter_mut().any(|c| {
+                    c.x == target_x && c.y == target_y && c.health > 0 && c.wall_health > 0
+                });
                 if is_city_with_wall && is_player_unit {
                     // attack unit that stay in the city with wall
                     let player_unit = player

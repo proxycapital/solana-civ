@@ -119,42 +119,33 @@ pub fn remove_from_production_queue(
     Ok(())
 }
 
-pub fn repair_wall(
-    ctx: Context<RepairWall>,
-    city_id: u32,
-) -> Result<()> {
+pub fn repair_wall(ctx: Context<RepairWall>, city_id: u32) -> Result<()> {
     let player_account: &mut Account<'_, Player> = &mut ctx.accounts.player_account;
 
-    // 1 hp to repair = 2 wood + 2 stone
-    let mut cost = 0;
-    let mut max_wall_hp = 0;
-
-    {
-        // Find the city by city_id.    
+    // Encapsulate the logic in a separate block to release the borrow after use.
+    let (max_wall_hp, cost) = {
         let city = player_account
             .cities
             .iter()
             .find(|city| city.city_id == city_id)
             .ok_or(CityError::CityNotFound)?;
-        
 
-        // check if city has any level of wall wall (any of them)
-        if city.buildings.contains(&BuildingType::WallIndustrial) {
-            max_wall_hp = 200;
+        let max_wall_hp = if city.buildings.contains(&BuildingType::WallIndustrial) {
+            200
         } else if city.buildings.contains(&BuildingType::WallRenaissance) {
-            max_wall_hp = 150;
+            150
         } else if city.buildings.contains(&BuildingType::WallMedieval) {
-            max_wall_hp = 100;
+            100
         } else if city.buildings.contains(&BuildingType::Wall) {
-            max_wall_hp = 50;
+            50
         } else {
-            // no wall in the city
             return err!(CityError::NoWall);
-        }
+        };
 
-        // Calculate cost of the repair
-        cost = (max_wall_hp - city.wall_health) * 2;
-    }
+        // 1 hp to repair = 2 wood + 2 stone
+        let cost = (max_wall_hp - city.wall_health) * 2;
+        (max_wall_hp, cost)
+    };
 
     // Check and deduct the player's wood balance.
     if player_account.resources.wood < cost {
@@ -174,7 +165,7 @@ pub fn repair_wall(
         .iter_mut()
         .find(|city| city.city_id == city_id)
         .ok_or(CityError::CityNotFound)?;
-    
+
     // Set city health to max
     city.wall_health = max_wall_hp;
 
