@@ -127,7 +127,11 @@ impl Unit {
         !matches!(self.unit_type, UnitType::Settler | UnitType::Builder)
     }
 
-    pub fn attack_unit(&mut self, defender: &mut Unit) -> Result<()> {
+    pub fn attack_unit(
+        &mut self,
+        defender: &mut Unit,
+        defender_behind_the_wall: Option<bool>,
+    ) -> Result<()> {
         // Check if the attacker is alive and of attacking type
         if !self.is_alive || !self.can_attack() {
             return err!(UnitError::InvalidAttack);
@@ -153,9 +157,14 @@ impl Unit {
         let multiplier: f32 = 0.9 + ((random_factor as f32) * 0.0223);
         // @todo: do we really need the multiplier for the taken damage?
         let taken_damage_multiplier: f32 = 1.0 / multiplier;
-        let given_damage_raw =
+        let mut given_damage_raw =
             30.0 * e.powf((self.attack as f32 - defender.attack as f32) / 25.0) * multiplier
                 - 10.0 * (100.0 - self.health as f32) / 100.0;
+
+        if defender_behind_the_wall.is_some() {
+            // decrease given damage by 2 if defender unit behind the wall
+            given_damage_raw /= 2.0;
+        }
 
         let taken_damage_raw = 30.0
             * e.powf((defender.attack as f32 - self.attack as f32) / 25.0)
@@ -197,8 +206,11 @@ impl Unit {
             return err!(UnitError::InvalidAttack);
         }
 
-        // @todo: consider more complicated defense flow based on Wall types etc, as well as taken_damage for the attacker (in case of Wall in the city)
-        let city_defense = city.attack;
+        // by default city don't have any defence
+        let mut city_defense = 0;
+        if city.wall_health != 0 {
+            city_defense = city.attack;
+        }
 
         // Similar damage calculations as attack_unit
         let e: f32 = std::f32::consts::E;
@@ -212,15 +224,32 @@ impl Unit {
             * e.powf((city_defense as f32 - self.attack as f32) / 25.0)
             * taken_damage_multiplier) as u8;
 
-        msg!("Given damage to the city: {}", given_damage);
-        msg!("Taken damage from the city: {}", given_damage);
-
-        if u32::from(given_damage) >= city.health {
-            city.health = 0;
-            msg!("City has been destroyed");
+        if city.wall_health > 0 {
+            // damage for wall decreased by 2
+            let given_wall_damage = given_damage / 2;
+            // handle damage for city wall
+            if city.wall_health < given_wall_damage as u32 {
+                let city_damage = u32::from(given_wall_damage) - city.wall_health;
+                city.wall_health = 0;
+                city.health -= city_damage;
+                msg!("City HP after attack: {}", city.health);
+                msg!("City Wall destroyed");
+            } else {
+                city.wall_health -= u32::from(given_wall_damage);
+                msg!("City Wall HP after attack: {}", city.wall_health);
+            }
         } else {
-            city.health -= u32::from(given_damage);
-            msg!("City HP after attack: {}", city.health);
+            msg!("Given damage to the city: {}", given_damage);
+            msg!("Taken damage from the city: {}", given_damage);
+
+            // handle damage for city health
+            if u32::from(given_damage) >= city.health {
+                city.health = 0;
+                msg!("City has been destroyed");
+            } else {
+                city.health -= u32::from(given_damage);
+                msg!("City HP after attack: {}", city.health);
+            }
         }
 
         if taken_damage >= self.health {
@@ -244,7 +273,9 @@ impl UnitType {
         match self {
             UnitType::Settler | UnitType::Builder | UnitType::Warrior => true, // No tech required
             UnitType::Archer => researched_technologies.contains(&TechnologyType::Archery),
-            UnitType::Horseman => researched_technologies.contains(&TechnologyType::HorsebackRiding),
+            UnitType::Horseman => {
+                researched_technologies.contains(&TechnologyType::HorsebackRiding)
+            }
             UnitType::Swordsman => researched_technologies.contains(&TechnologyType::IronWorking),
             UnitType::Crossbowman => {
                 researched_technologies.contains(&TechnologyType::MedievalWarfare)

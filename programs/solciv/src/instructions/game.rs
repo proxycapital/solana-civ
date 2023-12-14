@@ -145,12 +145,33 @@ fn process_npc_movements_and_attacks(npc_units: &mut Vec<Unit>, player: &mut Pla
             let dist = std::cmp::max(dist_x, dist_y) as u8;
 
             if dist == 1 {
-                if let Some(player_unit) = player
+                let is_player_unit = player
+                    .units
+                    .iter_mut()
+                    .any(|u| u.x == target_x && u.y == target_y);
+                let is_city_with_wall = player.cities.iter_mut().any(|c| {
+                    c.x == target_x && c.y == target_y && c.health > 0 && c.wall_health > 0
+                });
+                if is_city_with_wall && is_player_unit {
+                    // attack unit that stay in the city with wall
+                    let player_unit = player
+                        .units
+                        .iter_mut()
+                        .find(|u| u.x == target_x && u.y == target_y && u.is_alive);
+                    npc_units[i].attack_unit(player_unit.unwrap(), Some(true))?;
+                    if !npc_units[i].is_alive {
+                        player.resources.gems = player
+                            .resources
+                            .gems
+                            .checked_add(GEMS_PER_KILL as u32)
+                            .unwrap_or(u32::MAX);
+                    }
+                } else if let Some(player_unit) = player
                     .units
                     .iter_mut()
                     .find(|u| u.x == target_x && u.y == target_y && u.is_alive)
                 {
-                    npc_units[i].attack_unit(player_unit)?;
+                    npc_units[i].attack_unit(player_unit, None)?;
                     if !npc_units[i].is_alive {
                         player.resources.gems = player
                             .resources

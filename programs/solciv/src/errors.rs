@@ -89,8 +89,11 @@ pub enum CityError {
     #[msg("Not enough stone")]
     InsufficientStone,
 
-    #[msg("City not damaged")]
-    NotDamagedCity,
+    #[msg("Wall not damaged")]
+    NotDamagedWall,
+
+    #[msg("No wall in the city")]
+    NoWall,
 
     #[msg("Not enough gold for maintenance")]
     InsufficientGoldForMaintenance,

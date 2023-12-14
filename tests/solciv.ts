@@ -304,10 +304,10 @@ describe("solciv", () => {
     };
     const cityId = 0;
     try {
-      await program.methods.repairCity(cityId).accounts(accounts).rpc();
+      await program.methods.repairWall(cityId).accounts(accounts).rpc();
     } catch (e) {
       const { message } = e;
-      expect(message).include("NotDamagedCity");
+      expect(message).include("NoWall");
     }
   });
 

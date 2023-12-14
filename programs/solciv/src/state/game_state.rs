@@ -65,7 +65,11 @@ impl Player {
         self.resources.wood = self.resources.wood.checked_add(wood).unwrap_or(u32::MAX);
         self.resources.stone = self.resources.stone.checked_add(stone).unwrap_or(u32::MAX);
         self.resources.iron = self.resources.iron.checked_add(iron).unwrap_or(u32::MAX);
-        self.resources.horses = self.resources.horses.checked_add(horses).unwrap_or(u32::MAX);
+        self.resources.horses = self
+            .resources
+            .horses
+            .checked_add(horses)
+            .unwrap_or(u32::MAX);
         Ok(())
     }
 
@@ -110,9 +114,9 @@ impl Player {
 
     pub fn can_research(&self, tech: &TechnologyType) -> bool {
         let prev_tech = match tech {
-            TechnologyType::AnimalHusbandry | TechnologyType::Writing | TechnologyType::Agriculture => {
-                return true
-            },
+            TechnologyType::AnimalHusbandry
+            | TechnologyType::Writing
+            | TechnologyType::Agriculture => return true,
             TechnologyType::Archery => TechnologyType::AnimalHusbandry,
             TechnologyType::HorsebackRiding => TechnologyType::Archery,
             TechnologyType::IronWorking => TechnologyType::Archery,

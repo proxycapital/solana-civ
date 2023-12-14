@@ -119,36 +119,47 @@ pub fn remove_from_production_queue(
     Ok(())
 }
 
-pub fn repair_city(ctx: Context<RepairCity>, city_id: u32) -> Result<()> {
-    let player_account = &mut ctx.accounts.player_account;
+pub fn repair_wall(ctx: Context<RepairWall>, city_id: u32) -> Result<()> {
+    let player_account: &mut Account<'_, Player> = &mut ctx.accounts.player_account;
 
-    // Find the city by city_id
-    let health = player_account
-        .cities
-        .iter()
-        .find(|city| city.city_id == city_id)
-        .map(|city| city.health)
-        .ok_or(CityError::CityNotFound)?;
+    // Encapsulate the logic in a separate block to release the borrow after use.
+    let (max_wall_hp, cost) = {
+        let city = player_account
+            .cities
+            .iter()
+            .find(|city| city.city_id == city_id)
+            .ok_or(CityError::CityNotFound)?;
 
-    if health == 100 {
-        return err!(CityError::NotDamagedCity);
-    }
+        let max_wall_hp = if city.buildings.contains(&BuildingType::WallIndustrial) {
+            200
+        } else if city.buildings.contains(&BuildingType::WallRenaissance) {
+            150
+        } else if city.buildings.contains(&BuildingType::WallMedieval) {
+            100
+        } else if city.buildings.contains(&BuildingType::Wall) {
+            50
+        } else {
+            return err!(CityError::NoWall);
+        };
 
-    // Calculate cost of the repair: 1 hp to repair = 2 wood + 2 stone
-    let cost = (100 - health) * 2;
+        // 1 hp to repair = 2 wood + 2 stone
+        let cost = (max_wall_hp - city.wall_health) * 2;
+        (max_wall_hp, cost)
+    };
 
-    // Check and deduct the player's resources.
+    // Check and deduct the player's wood balance.
     if player_account.resources.wood < cost {
         return err!(CityError::InsufficientWood);
     }
-    player_account.resources.wood -= cost;
 
+    // Check and deduct the player's wood balance.
     if player_account.resources.stone < cost {
         return err!(CityError::InsufficientStone);
     }
+
+    player_account.resources.wood -= cost;
     player_account.resources.stone -= cost;
 
-    // Find the city, mutable borrow, and repair it.
     let city = player_account
         .cities
         .iter_mut()
@@ -156,7 +167,7 @@ pub fn repair_city(ctx: Context<RepairCity>, city_id: u32) -> Result<()> {
         .ok_or(CityError::CityNotFound)?;
 
     // Set city health to max
-    city.health = 100;
+    city.wall_health = max_wall_hp;
 
     Ok(())
 }
@@ -229,7 +240,7 @@ pub fn purchase_with_gold(
 }
 
 #[derive(Accounts)]
-pub struct RepairCity<'info> {
+pub struct RepairWall<'info> {
     #[account(mut, has_one = player)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]

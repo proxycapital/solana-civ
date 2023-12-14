@@ -9,7 +9,7 @@ use crate::instructions::*;
 use crate::state::{ProductionItem, TechnologyType};
 use anchor_lang::prelude::*;
 
-declare_id!("BqbchBiRnWv7u2n9jBRWdC4bgVG54qpdVEvNPBDxx5Lm");
+declare_id!("3qoyRXbpBJDPfQYL5GUFJ2nf2YzpA8kZmXPYr4DZBmPU");
 
 #[program]
 pub mod solciv {
@@ -100,7 +100,7 @@ pub mod solciv {
         instructions::close_game(ctx)
     }
 
-    pub fn repair_city(ctx: Context<RepairCity>, city_id: u32) -> Result<()> {
-        instructions::repair_city(ctx, city_id)
+    pub fn repair_wall(ctx: Context<RepairWall>, city_id: u32) -> Result<()> {
+        instructions::repair_wall(ctx, city_id)
     }
 }
