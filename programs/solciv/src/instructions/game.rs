@@ -77,6 +77,9 @@ fn process_production_queues(player_account: &mut Player, game_key: Pubkey) -> R
                 }
             };
 
+            // Increment the accumulated production by the city's production yield
+            city.accumulated_production += city.production_yield;
+
             if city.accumulated_production >= cost {
                 // Production completed
                 match item {
@@ -95,9 +98,6 @@ fn process_production_queues(player_account: &mut Player, game_key: Pubkey) -> R
                 // Remove the item from the production queue and reset accumulated_production
                 city.production_queue.remove(0);
                 city.accumulated_production = 0;
-            } else {
-                // Increment the accumulated production by the city's production yield
-                city.accumulated_production += city.production_yield;
             }
         }
     }
