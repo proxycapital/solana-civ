@@ -20,6 +20,7 @@ pub struct City {
     pub buildings: Vec<BuildingType>,
     pub production_queue: Vec<ProductionItem>,
     pub accumulated_production: u32,
+    pub accumulated_food: i32,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq)]
@@ -79,6 +80,7 @@ impl City {
             buildings: vec![],
             production_queue: vec![],
             accumulated_production: 0,
+            accumulated_food: 0,
         }
     }
 

@@ -31,24 +31,23 @@ fn reset_units_movement_range(units: &mut [Unit]) {
     }
 }
 
-fn calculate_resources(player_account: &Player) -> (i32, u32, u32, u32, u32, u32, u32) {
+fn calculate_resources(player_account: &Player) -> (i32, u32, u32, u32, u32, u32) {
     // Calculate resources yielded by cities and tiles.
-    // This function will return a tuple (gold, food, wood, stone, iron, horses, science).
-    let mut resources: (i32, u32, u32, u32, u32, u32, u32) = (0, 0, 0, 0, 0, 0, 0);
+    // This function will return a tuple (gold, wood, stone, iron, horses, science).
+    let mut resources: (i32, u32, u32, u32, u32, u32) = (0, 0, 0, 0, 0, 0);
 
     for city in &player_account.cities {
         resources.0 += city.gold_yield as i32;
-        resources.1 += city.food_yield;
-        resources.6 += city.science_yield;
+        resources.5 += city.science_yield;
     }
 
     for tile in &player_account.tiles {
         match tile.tile_type {
-            TileType::LumberMill => resources.2 += 2,
-            TileType::StoneQuarry => resources.3 += 2,
-            TileType::Farm => resources.1 += 2,
-            TileType::IronMine => resources.4 += 2,
-            TileType::Pasture => resources.5 += 2,
+            TileType::LumberMill => resources.1 += 2,
+            TileType::StoneQuarry => resources.2 += 2,
+            TileType::IronMine => resources.3 += 2,
+            TileType::Pasture => resources.4 += 2,
+            _ => {} // Ignore other cases, including Farm
         }
     }
 
@@ -242,6 +241,10 @@ fn is_occupied(
         || player_cities.iter().any(|c| c.x == x && c.y == y)
 }
 
+fn required_food_for_growth(population: u32) -> u32 {
+    (0.1082 * (population as f64).powf(2.0) + 10.171 * population as f64 + 1.929) as u32
+}
+
 pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
     // check if the game is over via defeat or victory
     if ctx.accounts.game.defeat || ctx.accounts.game.victory {
@@ -251,13 +254,35 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
     reset_units_movement_range(&mut ctx.accounts.player_account.units);
 
     // Calculate and update player's resources
-    let (gold, food, wood, stone, iron, horses, science) =
+    let (gold, wood, stone, iron, horses, science) =
         calculate_resources(&ctx.accounts.player_account);
     ctx.accounts
         .player_account
-        .update_resources(gold, food, wood, stone, iron, horses)?;
+        .update_resources(gold, wood, stone, iron, horses)?;
 
     let player_account = &mut ctx.accounts.player_account;
+
+    for city in &mut player_account.cities {
+        city.accumulated_food += city.food_yield as i32;
+
+        // Deduct food for population maintenance
+        let food_consumption = city.population * 2; // 2 food per citizen
+        city.accumulated_food -= food_consumption as i32;
+
+        if city.accumulated_food >= 0 {
+            let required_food = required_food_for_growth(city.population);
+            if city.accumulated_food as u32 >= required_food {
+                city.population += 1;
+                city.accumulated_food = 0;
+            }
+        } else {
+            // Handle population decrease due to food shortage
+            if city.population > 1 {
+                city.population -= 1;
+                city.accumulated_food = 0;
+            }
+        }
+    }
 
     process_npc_movements_and_attacks(&mut ctx.accounts.npc_account.units, player_account)?;
 

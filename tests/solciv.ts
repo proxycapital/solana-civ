@@ -418,7 +418,6 @@ describe("solciv", () => {
     expect(account.turn).greaterThan(1);
     const playerAccount = await program.account.player.fetch(playerKey);
     expect(playerAccount.resources.gold).greaterThan(prevPlayerAccount.resources.gold);
-    expect(playerAccount.resources.food).greaterThan(prevPlayerAccount.resources.food);
   });
 
   it("Should not start research of already unlocked technology", async () => {

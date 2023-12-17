@@ -48,7 +48,6 @@ impl Player {
     pub fn update_resources(
         &mut self,
         gold: i32,
-        food: u32,
         wood: u32,
         stone: u32,
         iron: u32,
@@ -61,7 +60,6 @@ impl Player {
                 i32::MIN
             }
         });
-        self.resources.food = self.resources.food.checked_add(food).unwrap_or(u32::MAX);
         self.resources.wood = self.resources.wood.checked_add(wood).unwrap_or(u32::MAX);
         self.resources.stone = self.resources.stone.checked_add(stone).unwrap_or(u32::MAX);
         self.resources.iron = self.resources.iron.checked_add(iron).unwrap_or(u32::MAX);
