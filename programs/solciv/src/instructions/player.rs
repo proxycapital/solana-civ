@@ -11,7 +11,6 @@ pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
     // @todo: consider implementing helper methods for initializing the resources, units or other default things
     ctx.accounts.player_account.resources = Resources {
         gold: 0,
-        food: 0,
         wood: 0,
         stone: 0,
         iron: 0,

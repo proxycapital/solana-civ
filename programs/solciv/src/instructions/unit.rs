@@ -91,14 +91,8 @@ pub fn heal_unit(ctx: Context<HealUnit>, unit_id: u32) -> Result<()> {
         return err!(UnitError::UnitNotDamaged);
     }
 
-    // Check if player has enough of food
-    if ctx.accounts.player_account.resources.food < heal_cost {
-        return err!(UnitError::NotEnoughResources);
-    }
-
-    // Deduct the cost and heal the unit
-    ctx.accounts.player_account.resources.food -= heal_cost;
-    ctx.accounts.player_account.units[unit_idx].health = 100;
+    // @todo: implement new healing since we removed "food" resource
+    return err!(UnitError::NotEnoughResources);
 
     Ok(())
 }

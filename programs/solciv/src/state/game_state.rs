@@ -117,7 +117,7 @@ impl Player {
             | TechnologyType::Agriculture => return true,
             TechnologyType::Archery => TechnologyType::AnimalHusbandry,
             TechnologyType::HorsebackRiding => TechnologyType::Archery,
-            TechnologyType::IronWorking => TechnologyType::Archery,
+            TechnologyType::IronWorking => TechnologyType::HorsebackRiding,
             TechnologyType::MedievalWarfare => TechnologyType::IronWorking,
             TechnologyType::Gunpowder => TechnologyType::MedievalWarfare,
             TechnologyType::Ballistics => TechnologyType::Gunpowder,
@@ -131,6 +131,7 @@ impl Player {
             TechnologyType::Industrialization => TechnologyType::Construction,
             TechnologyType::ElectricalPower => TechnologyType::Industrialization,
             TechnologyType::ModernFarming => TechnologyType::ElectricalPower,
+            TechnologyType::Urbanization => TechnologyType::ModernFarming,
         };
         self.has_researched(&prev_tech)
     }

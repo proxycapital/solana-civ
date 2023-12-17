@@ -206,6 +206,7 @@ describe("solciv", () => {
   });
 
   it("Should not add settler to production queue: not enough of food", async () => {
+    throw(Error("Disabled."));
     const cityId = 0;
     const productionItem = { unit: { "0": { settler: {} } } };
     try {
@@ -451,7 +452,6 @@ describe("solciv", () => {
     const player = await program.account.player.fetch(playerKey);
     const city = player.cities[cityId];
     expect(city.productionQueue[1]).deep.equal(productionItem);
-    expect(player.resources.food).equal(0);
   });
 
   it("Should purchase unit with gold", async () => {

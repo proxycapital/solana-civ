@@ -271,7 +271,7 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
 
         if city.accumulated_food >= 0 {
             let required_food = required_food_for_growth(city.population);
-            if city.accumulated_food as u32 >= required_food {
+            if city.accumulated_food as u32 >= required_food && city.population < city.housing {
                 city.population += 1;
                 city.accumulated_food = 0;
             }
