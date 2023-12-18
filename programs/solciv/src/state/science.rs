@@ -21,6 +21,7 @@ pub enum TechnologyType {
     Industrialization,
     ElectricalPower,
     ModernFarming,
+    Urbanization,
 }
 
 impl TechnologyType {
@@ -45,6 +46,7 @@ impl TechnologyType {
             TechnologyType::Industrialization => 12,
             TechnologyType::ElectricalPower => 16,
             TechnologyType::ModernFarming => 20,
+            TechnologyType::Urbanization => 30,
         }
     }
 }
