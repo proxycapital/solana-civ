@@ -205,15 +205,14 @@ describe("solciv", () => {
     }
   });
 
-  it("Should not add settler to production queue: not enough of food", async () => {
-    throw(Error("Disabled."));
+  it("Should not add settler to production queue: insufficient population", async () => {
     const cityId = 0;
     const productionItem = { unit: { "0": { settler: {} } } };
     try {
       await addToProductionQueue(cityId, productionItem);
     } catch (e) {
       const { message } = e;
-      expect(message).include("InsufficientResources");
+      expect(message).include("InsufficientPopulationForSettler");
       const city = (await program.account.player.fetch(playerKey)).cities[0];
       expect(city.productionQueue.length).equal(1);
     }

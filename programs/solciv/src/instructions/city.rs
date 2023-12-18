@@ -20,6 +20,13 @@ pub fn add_to_production_queue(
         return err!(CityError::QueueFull);
     }
 
+    // Settler has special conditions as it consumes 1 Citizen, so city population should be at least 2
+    if let ProductionItem::Unit(UnitType::Settler) = &item {
+        if city.population < 2 {
+            return err!(CityError::InsufficientPopulationForSettler);
+        }
+    }
+
     let maintenance_cost = if let ProductionItem::Unit(unit_type) = &item {
         Unit::get_maintenance_cost(*unit_type)
     } else {
@@ -200,6 +207,15 @@ pub fn purchase_with_gold(
         .iter_mut()
         .find(|city| city.city_id == city_id)
         .ok_or(CityError::CityNotFound)?;
+
+    // Settler has special conditions as it consumes 1 Citizen, so city population should be at least 2
+    if let ProductionItem::Unit(UnitType::Settler) = &item {
+        if city.population < 2 {
+            return err!(CityError::InsufficientPopulationForSettler);
+        } else {
+            city.population -= 1;
+        }
+    }
 
     // Add the unit/building to the player's assets.
     match &item {

@@ -83,6 +83,10 @@ fn process_production_queues(player_account: &mut Player, game_key: Pubkey) -> R
                 // Production completed
                 match item {
                     ProductionItem::Unit(unit_type) => {
+                        // If the unit is a Settler and the city population is greater than 1, decrease the population
+                        if unit_type == UnitType::Settler && city.population > 1 {
+                            city.population -= 1;
+                        }
                         // Create a new unit and add it to the player's units
                         let new_unit =
                             Unit::new(next_unit_id, player, game_key, unit_type, city.x, city.y);
