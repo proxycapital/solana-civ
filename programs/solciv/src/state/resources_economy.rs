@@ -3,7 +3,6 @@ use anchor_lang::prelude::*;
 #[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone)]
 pub struct Resources {
     pub gold: i32,
-    pub food: u32,
     pub wood: u32,
     pub stone: u32,
     pub iron: u32,

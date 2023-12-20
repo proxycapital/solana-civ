@@ -103,6 +103,9 @@ pub enum CityError {
 
     #[msg("Not enough gold for maintenance")]
     InsufficientGoldForMaintenance,
+
+    #[msg("Not enough citizens to recruit a Settler")]
+    InsufficientPopulationForSettler,
 }
 
 #[error_code]

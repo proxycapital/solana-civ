@@ -21,6 +21,7 @@ pub struct City {
     pub production_queue: Vec<ProductionItem>,
     pub accumulated_production: u32,
     pub accumulated_food: i32,
+    pub housing: u32,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq)]
@@ -50,6 +51,7 @@ pub enum BuildingType {
     Mill,
     Bakery,
     Supermarket,
+    ResidentialComplex,
 }
 
 impl City {
@@ -81,12 +83,16 @@ impl City {
             production_queue: vec![],
             accumulated_production: 0,
             accumulated_food: 0,
+            housing: 4,
         }
     }
 
     pub fn construct_building(&mut self, building_type: BuildingType) -> Result<()> {
         match building_type {
-            BuildingType::Barracks => self.attack += 2,
+            BuildingType::Barracks => {
+                self.attack += 2;
+                self.housing += 1;
+            }
             BuildingType::Wall => {
                 self.attack += 5;
                 self.wall_health = 50;
@@ -105,7 +111,10 @@ impl City {
             }
             BuildingType::Library => self.science_yield += 2,
             BuildingType::School => self.science_yield += 3,
-            BuildingType::University => self.science_yield += 4,
+            BuildingType::University => {
+                self.science_yield += 4;
+                self.housing += 1;
+            }
             BuildingType::Observatory => self.science_yield += 5,
             BuildingType::Forge => self.production_yield += 2,
             BuildingType::Factory => self.production_yield += 3,
@@ -113,10 +122,14 @@ impl City {
             BuildingType::Market => self.gold_yield += 2,
             BuildingType::Bank => self.gold_yield += 3,
             BuildingType::StockExchange => self.gold_yield += 4,
-            BuildingType::Granary => self.food_yield += 2,
+            BuildingType::Granary => {
+                self.food_yield += 2;
+                self.housing += 2;
+            }
             BuildingType::Mill => self.food_yield += 2,
             BuildingType::Bakery => self.food_yield += 3,
             BuildingType::Supermarket => self.food_yield += 4,
+            BuildingType::ResidentialComplex => self.housing += 5,
         }
         self.buildings.push(building_type);
 
@@ -147,6 +160,7 @@ impl BuildingType {
             BuildingType::Mill => (20, 200),
             BuildingType::Bakery => (30, 300),
             BuildingType::Supermarket => (40, 400),
+            BuildingType::ResidentialComplex => (40, 600),
         }
     }
 
@@ -191,6 +205,9 @@ impl BuildingType {
             }
             BuildingType::Supermarket => {
                 researched_technologies.contains(&TechnologyType::ModernFarming)
+            }
+            BuildingType::ResidentialComplex => {
+                researched_technologies.contains(&TechnologyType::Urbanization)
             }
         }
     }

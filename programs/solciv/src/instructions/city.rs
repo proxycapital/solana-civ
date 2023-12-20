@@ -20,6 +20,13 @@ pub fn add_to_production_queue(
         return err!(CityError::QueueFull);
     }
 
+    // Settler has special conditions as it consumes 1 Citizen, so city population should be at least 2
+    if let ProductionItem::Unit(UnitType::Settler) = &item {
+        if city.population < 2 {
+            return err!(CityError::InsufficientPopulationForSettler);
+        }
+    }
+
     let maintenance_cost = if let ProductionItem::Unit(unit_type) = &item {
         Unit::get_maintenance_cost(*unit_type)
     } else {
@@ -48,14 +55,10 @@ pub fn add_to_production_queue(
             }
             match unit_type {
                 UnitType::Settler => {
-                    let settlers_count = player_account.cities.len() as u32
-                        + player_account
-                            .units
-                            .iter()
-                            .filter(|unit| matches!(unit.unit_type, UnitType::Settler))
-                            .count() as u32;
-                    settlers_count * Unit::get_resource_cost(*unit_type)
-                }
+                    // @todo: this now requires Population > 1
+                    // @todo: decrease population when the settler is recruited
+                    0
+                },
                 UnitType::Swordsman => Unit::get_resource_cost(*unit_type),
                 UnitType::Horseman => Unit::get_resource_cost(*unit_type),
                 _ => 0, // No resource cost for other unit types
@@ -66,7 +69,6 @@ pub fn add_to_production_queue(
     // Perform the necessary deductions
     if total_cost > 0 {
         let resource_type = match &item {
-            ProductionItem::Unit(UnitType::Settler) => &mut player_account.resources.food,
             ProductionItem::Unit(UnitType::Swordsman) => &mut player_account.resources.iron,
             ProductionItem::Unit(UnitType::Horseman) => &mut player_account.resources.horses,
             // can this really happen?
@@ -205,6 +207,15 @@ pub fn purchase_with_gold(
         .iter_mut()
         .find(|city| city.city_id == city_id)
         .ok_or(CityError::CityNotFound)?;
+
+    // Settler has special conditions as it consumes 1 Citizen, so city population should be at least 2
+    if let ProductionItem::Unit(UnitType::Settler) = &item {
+        if city.population < 2 {
+            return err!(CityError::InsufficientPopulationForSettler);
+        } else {
+            city.population -= 1;
+        }
+    }
 
     // Add the unit/building to the player's assets.
     match &item {
