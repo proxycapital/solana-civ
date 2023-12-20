@@ -4,12 +4,13 @@ mod consts;
 mod errors;
 mod instructions;
 mod state;
+mod utils;
 
 use crate::instructions::*;
 use crate::state::{ProductionItem, TechnologyType};
 use anchor_lang::prelude::*;
 
-declare_id!("3qoyRXbpBJDPfQYL5GUFJ2nf2YzpA8kZmXPYr4DZBmPU");
+declare_id!("8RTGhsKoX81TVW8zwZwR483WKSWjdW4eYcVkHsgsgtCr");
 
 #[program]
 pub mod solciv {
@@ -33,6 +34,10 @@ pub mod solciv {
 
     pub fn heal_unit(ctx: Context<HealUnit>, unit_id: u32) -> Result<()> {
         instructions::heal_unit(ctx, unit_id)
+    }
+
+    pub fn upgrade_unit(ctx: Context<UpgradeUnit>, unit_id: u32) -> Result<()> {
+        instructions::upgrade_unit(ctx, unit_id)
     }
 
     pub fn found_city(
