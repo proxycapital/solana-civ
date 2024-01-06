@@ -1,6 +1,6 @@
 use crate::errors::*;
-use crate::utils::*;
 use crate::state::{City, TechnologyType};
+use crate::utils::*;
 use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone)]
@@ -94,7 +94,9 @@ impl Unit {
     ///
     /// A tuple containing values representing the base stats of the unit in the following order:
     /// `(is_ranged, health, attack, movement_range, remaining_actions, base_production_cost, base_gold_cost, base_resource_cost, maintenance_cost, experience, level)`.
-    pub fn get_base_stats(unit_type: UnitType) -> (bool, u8, u8, u8, u8, u32, u32, u32, i32, u8, u8) {
+    pub fn get_base_stats(
+        unit_type: UnitType,
+    ) -> (bool, u8, u8, u8, u8, u32, u32, u32, i32, u8, u8) {
         match unit_type {
             UnitType::Settler => (false, 100, 0, 2, 1, 20, 100, 60, 0, 0, 0),
             UnitType::Builder => (false, 100, 0, 2, 1, 20, 100, 0, 0, 0, 0),
@@ -194,7 +196,7 @@ impl Unit {
             // if attacker kill defender - he will gain 5 (2+3) XP
             let exp_to_gain = calculate_exp_amount(self.level, self.experience, 2);
             self.experience = exp_to_gain;
-            
+
             msg!("Defender is dead");
         } else {
             let exp_to_gain = calculate_exp_amount(defender.level, defender.experience, 3);
@@ -212,7 +214,6 @@ impl Unit {
         } else {
             let exp_to_gain = calculate_exp_amount(self.level, self.experience, 3);
             self.experience = exp_to_gain;
-            
 
             self.health -= taken_damage;
             msg!("Attacker HP after attack: {}", self.health);

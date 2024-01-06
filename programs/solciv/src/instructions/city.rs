@@ -58,7 +58,7 @@ pub fn add_to_production_queue(
                     // @todo: this now requires Population > 1
                     // @todo: decrease population when the settler is recruited
                     0
-                },
+                }
                 UnitType::Swordsman => Unit::get_resource_cost(*unit_type),
                 UnitType::Horseman => Unit::get_resource_cost(*unit_type),
                 _ => 0, // No resource cost for other unit types

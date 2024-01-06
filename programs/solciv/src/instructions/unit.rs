@@ -91,7 +91,7 @@ pub fn upgrade_unit(ctx: Context<UpgradeUnit>, unit_id: u32) -> Result<()> {
     let unit_level = units[unit_idx].level;
     let unit_health = units[unit_idx].health;
     let unit_movement_range = units[unit_idx].movement_range;
-    
+
     // unit dont have movement range
     if unit_movement_range == 0 {
         return err!(UnitError::NoMovementPoints);
@@ -302,7 +302,7 @@ pub fn attack_unit(ctx: Context<AttackUnit>, attacker_id: u32, defender_id: u32)
     }
 
     attacker.attack_unit(defender, None)?;
-    
+
     if !defender.is_alive {
         ctx.accounts.player_account.resources.gems = ctx
             .accounts
@@ -368,7 +368,7 @@ pub fn attack_city(ctx: Context<AttackCity>, attacker_id: u32, city_id: u32) -> 
 
         attacker.attack_city(target_city)?;
         attacker.movement_range = 0;
-        
+
         let exp_to_gain = calculate_exp_amount(attacker.level, attacker.experience, 3);
         attacker.experience = exp_to_gain;
 
