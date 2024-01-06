@@ -1,3 +1,4 @@
+use crate::consts::*;
 use crate::errors::*;
 use crate::state::{City, TechnologyType};
 use crate::utils::*;
@@ -140,6 +141,24 @@ impl Unit {
         !matches!(self.unit_type, UnitType::Settler | UnitType::Builder)
     }
 
+    fn apply_damage(&mut self, damage: u8) {
+        if damage >= self.health {
+            self.is_alive = false;
+            self.health = 0;
+        } else {
+            self.health -= damage;
+        }
+    }
+
+    fn update_experience(&mut self, is_killer: bool) {
+        let exp_gain = if is_killer {
+            2 * EXP_PER_ATTACK
+        } else {
+            EXP_PER_ATTACK
+        };
+        self.experience = get_new_exp(self.level, self.experience, exp_gain);
+    }
+
     pub fn attack_unit(
         &mut self,
         defender: &mut Unit,
@@ -187,38 +206,15 @@ impl Unit {
         let given_damage = (given_damage_raw.max(0.0).min(255.0)) as u8;
         let taken_damage = (taken_damage_raw.max(0.0).min(255.0)) as u8;
 
-        msg!("Given damage: {}", given_damage);
-        msg!("Taken damage: {}", taken_damage);
-        // Deduct defender's health by the given damage
-        if given_damage >= defender.health {
-            defender.is_alive = false;
-            defender.health = 0;
-            // if attacker kill defender - he will gain 5 (2+3) XP
-            let exp_to_gain = calculate_exp_amount(self.level, self.experience, 2);
-            self.experience = exp_to_gain;
+        // Apply damage to defender and update attacker's experience
+        defender.apply_damage(given_damage);
+        self.update_experience(!defender.is_alive);
 
-            msg!("Defender is dead");
-        } else {
-            let exp_to_gain = calculate_exp_amount(defender.level, defender.experience, 3);
-            defender.experience = exp_to_gain;
+        // Apply damage to self (attacker) and update defender's experience
+        self.apply_damage(taken_damage);
+        defender.update_experience(!self.is_alive);
 
-            defender.health -= given_damage;
-            msg!("Defender HP after attack: {}", defender.health);
-        }
-
-        // Deduct attacker's health by the taken damage
-        if taken_damage >= self.health {
-            self.is_alive = false;
-            self.health = 0;
-            msg!("Attacker is dead");
-        } else {
-            let exp_to_gain = calculate_exp_amount(self.level, self.experience, 3);
-            self.experience = exp_to_gain;
-
-            self.health -= taken_damage;
-            msg!("Attacker HP after attack: {}", self.health);
-        }
-        // after the attack unit cannot move or attack anymore
+        // After the attack unit cannot move or attack anymore
         self.movement_range = 0;
 
         Ok(())

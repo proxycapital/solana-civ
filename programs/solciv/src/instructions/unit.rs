@@ -78,10 +78,7 @@ pub fn move_unit(ctx: Context<MoveUnit>, unit_id: u32, x: u8, y: u8) -> Result<(
 }
 
 pub fn upgrade_unit(ctx: Context<UpgradeUnit>, unit_id: u32) -> Result<()> {
-    const MAX_UNIT_LEVEL: u8 = 3;
-
     let units = &mut ctx.accounts.player_account.units;
-
     let unit_idx = units
         .iter()
         .position(|u| u.unit_id == unit_id)
@@ -92,33 +89,34 @@ pub fn upgrade_unit(ctx: Context<UpgradeUnit>, unit_id: u32) -> Result<()> {
     let unit_health = units[unit_idx].health;
     let unit_movement_range = units[unit_idx].movement_range;
 
-    // unit dont have movement range
+    // Unit doesn't have movement range
     if unit_movement_range == 0 {
         return err!(UnitError::NoMovementPoints);
     }
 
-    // max level reached
-    if unit_level == MAX_UNIT_LEVEL {
+    // Check if max level was reached
+    if unit_level >= EXP_THRESHOLDS.len() as u8 {
         return err!(UnitError::MaxLevelReached);
     }
 
-    match (unit_level, unit_exp) {
-        (0, EXP_FOR_LEVEL_1) | (1, EXP_FOR_LEVEL_2) | (2, EXP_FOR_LEVEL_3) => {
-            if unit_health >= 70 {
-                ctx.accounts.player_account.units[unit_idx].health = 100;
-            } else {
-                ctx.accounts.player_account.units[unit_idx].health += 30;
-            }
-
-            ctx.accounts.player_account.units[unit_idx].attack += 2;
-            ctx.accounts.player_account.units[unit_idx].level += 1;
-            // after the upgrade unit cannot move or attack anymore
-            ctx.accounts.player_account.units[unit_idx].movement_range = 0;
-        }
-        _ => {
-            return err!(UnitError::NotEnoughExp);
-        }
+    // Check if unit has enough experience to level up
+    if unit_exp < EXP_THRESHOLDS[unit_level as usize] {
+        return err!(UnitError::NotEnoughExp);
     }
+
+    // Level Up
+    if unit_health >= 70 {
+        ctx.accounts.player_account.units[unit_idx].health = 100;
+    } else {
+        ctx.accounts.player_account.units[unit_idx].health += 30;
+    }
+
+    ctx.accounts.player_account.units[unit_idx].attack += 2;
+    ctx.accounts.player_account.units[unit_idx].level += 1;
+
+    // After the upgrade, the unit cannot move or attack anymore
+    ctx.accounts.player_account.units[unit_idx].movement_range = 0;
+
     Ok(())
 }
 
@@ -369,8 +367,7 @@ pub fn attack_city(ctx: Context<AttackCity>, attacker_id: u32, city_id: u32) -> 
         attacker.attack_city(target_city)?;
         attacker.movement_range = 0;
 
-        let exp_to_gain = calculate_exp_amount(attacker.level, attacker.experience, 3);
-        attacker.experience = exp_to_gain;
+        attacker.experience = get_new_exp(attacker.level, attacker.experience, 3);
 
         target_city.health == 0
     };
