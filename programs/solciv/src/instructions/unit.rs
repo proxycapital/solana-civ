@@ -347,30 +347,11 @@ pub fn attack_city(ctx: Context<AttackCity>, attacker_id: u32, city_id: u32) -> 
         return err!(UnitError::OutOfAttackRange);
     }
 
-    let city_was_destroyed = {
-        let target_city = ctx
-            .accounts
-            .npc_account
-            .cities
-            .iter_mut()
-            .find(|c| c.city_id == city_id)
-            .ok_or(CityError::CityNotFound)?;
+    attacker.attack_city(target_city)?;
+    attacker.movement_range = 0;
+    attacker.experience = get_new_exp(attacker.level, attacker.experience, 3);
 
-        let dist_x = (attacker.x as i16 - target_city.x as i16).abs();
-        let dist_y = (attacker.y as i16 - target_city.y as i16).abs();
-        let dist = std::cmp::max(dist_x, dist_y) as u8;
-
-        if dist != 1 {
-            return err!(UnitError::OutOfAttackRange);
-        }
-
-        attacker.attack_city(target_city)?;
-        attacker.movement_range = 0;
-
-        attacker.experience = get_new_exp(attacker.level, attacker.experience, 3);
-
-        target_city.health == 0
-    };
+    let city_was_destroyed = target_city.health == 0;
 
     if city_was_destroyed {
         ctx.accounts.player_account.resources.gems = ctx
