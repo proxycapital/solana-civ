@@ -317,8 +317,8 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
     ctx.accounts.npc_account.units.retain(|u| u.is_alive);
     ctx.accounts.npc_account.cities.retain(|c| c.health > 0);
 
-    // spawn new NPC units every 25 turns
-    if ctx.accounts.game.turn % 25 == 0 {
+    // spawn new NPC units every 20 turns
+    if ctx.accounts.game.turn % 20 == 0 {
         let clock = Clock::get()?;
         let random_factor = clock.unix_timestamp % 10;
 
@@ -327,11 +327,20 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
         let mut next_npc_id = ctx.accounts.npc_account.next_unit_id;
 
         for city in &ctx.accounts.npc_account.cities {
-            // 0-4 Warrior, 5-9 Archer
-            let unit_type = if random_factor < 5 {
-                UnitType::Warrior
+            let unit_type = if ctx.accounts.game.turn >= 100 {
+                // Turn >= 100: 0-4 Swordsman, 5-9 Horseman
+                if random_factor < 5 {
+                    UnitType::Swordsman
+                } else {
+                    UnitType::Horseman
+                }
             } else {
-                UnitType::Archer
+                // Turn < 100: 0-4 Warrior, 5-9 Archer
+                if random_factor < 5 {
+                    UnitType::Warrior
+                } else {
+                    UnitType::Archer
+                }
             };
 
             let new_unit = Unit::new(
