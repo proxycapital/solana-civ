@@ -25,8 +25,15 @@ pub fn initialize_game(ctx: Context<InitializeGame>, map: [u8; 400]) -> Result<(
     Ok(())
 }
 
-fn reset_units_movement_range(units: &mut [Unit]) {
+fn heal_units_and_reset_movement_range(units: &mut [Unit]) {
     for unit in units.iter_mut().filter(|u| u.is_alive) {
+        // Heal if the unit did not move/attack and has less than max HP
+        if unit.health < 100 && unit.movement_range == Unit::get_base_movement_range(unit.unit_type)
+        {
+            unit.health = std::cmp::min(unit.health + 5, 100);
+        }
+
+        // Reset movement range
         unit.movement_range = Unit::get_base_movement_range(unit.unit_type);
     }
 }
@@ -254,8 +261,6 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
     if ctx.accounts.game.defeat || ctx.accounts.game.victory {
         return Ok(());
     }
-    // Reset units' movement range
-    reset_units_movement_range(&mut ctx.accounts.player_account.units);
 
     // Calculate and update player's resources
     let (gold, wood, stone, iron, horses, science) =
@@ -289,6 +294,10 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
     }
 
     process_npc_movements_and_attacks(&mut ctx.accounts.npc_account.units, player_account)?;
+
+    // The healing should happen only after NPC attacks
+    // Reset units' movement range & heal if needed
+    heal_units_and_reset_movement_range(&mut ctx.accounts.player_account.units);
 
     // Process the production queues of each city for the player
     let game_key = ctx.accounts.game.key();

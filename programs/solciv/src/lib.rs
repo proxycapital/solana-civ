@@ -32,10 +32,6 @@ pub mod solciv {
         instructions::move_unit(ctx, unit_id, x, y)
     }
 
-    pub fn heal_unit(ctx: Context<HealUnit>, unit_id: u32) -> Result<()> {
-        instructions::heal_unit(ctx, unit_id)
-    }
-
     pub fn upgrade_unit(ctx: Context<UpgradeUnit>, unit_id: u32) -> Result<()> {
         instructions::upgrade_unit(ctx, unit_id)
     }

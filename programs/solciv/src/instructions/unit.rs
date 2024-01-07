@@ -120,27 +120,6 @@ pub fn upgrade_unit(ctx: Context<UpgradeUnit>, unit_id: u32) -> Result<()> {
     Ok(())
 }
 
-pub fn heal_unit(ctx: Context<HealUnit>, unit_id: u32) -> Result<()> {
-    let units = &mut ctx.accounts.player_account.units;
-
-    // Find the index of the unit with the given unit_id
-    let unit_idx = units
-        .iter()
-        .position(|u| u.unit_id == unit_id)
-        .ok_or(UnitError::UnitNotFound)?;
-
-    // Get the cost of healing
-    let heal_cost = 100 - units[unit_idx].health as u32;
-    if heal_cost == 0 {
-        return err!(UnitError::UnitNotDamaged);
-    }
-
-    // @todo: implement new healing since we removed "food" resource
-    return err!(UnitError::NotEnoughResources);
-
-    Ok(())
-}
-
 pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: String) -> Result<()> {
     // Validate if the unit with `unit_id` is a settler and is at `x` and `y`.
     let unit_idx = ctx
