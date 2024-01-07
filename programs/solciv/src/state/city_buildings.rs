@@ -22,6 +22,13 @@ pub struct City {
     pub accumulated_production: u32,
     pub accumulated_food: i32,
     pub housing: u32,
+    pub controlled_tiles: Vec<TileCoordinate>,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
+pub struct TileCoordinate {
+    pub x: u8,
+    pub y: u8,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq)]
@@ -63,6 +70,7 @@ impl City {
         y: u8,
         name: String,
         health: u32,
+        controlled_tiles: Vec<TileCoordinate>,
     ) -> Self {
         Self {
             city_id,
@@ -84,7 +92,14 @@ impl City {
             accumulated_production: 0,
             accumulated_food: 0,
             housing: 4,
+            controlled_tiles,
         }
+    }
+
+    pub fn controls_tile(&self, tile_x: u8, tile_y: u8) -> bool {
+        self.controlled_tiles
+            .iter()
+            .any(|tile| tile.x == tile_x && tile.y == tile_y)
     }
 
     pub fn construct_building(&mut self, building_type: BuildingType) -> Result<()> {

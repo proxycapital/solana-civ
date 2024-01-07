@@ -18,6 +18,7 @@ pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
             17,
             "Barbarian Village".to_string(),
             1000,
+            vec![TileCoordinate { x: 2, y: 17 }],
         ),
         City::new(
             1,
@@ -27,6 +28,7 @@ pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
             17,
             "Barbarian Village".to_string(),
             1000,
+            vec![TileCoordinate { x: 17, y: 17 }],
         ),
     ];
 

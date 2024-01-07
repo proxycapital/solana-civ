@@ -120,6 +120,32 @@ pub fn upgrade_unit(ctx: Context<UpgradeUnit>, unit_id: u32) -> Result<()> {
     Ok(())
 }
 
+fn calculate_controlled_tiles(x: u8, y: u8, existing_cities: &[City]) -> Vec<TileCoordinate> {
+    let mut tiles = Vec::new();
+
+    for dx in -2..=2 {
+        for dy in -2..=2 {
+            let tile_x = (x as i16 + dx) as u8;
+            let tile_y = (y as i16 + dy) as u8;
+
+            // Check map boundaries and existing city control
+            if tile_x < MAP_BOUND && tile_y < MAP_BOUND {
+                if !existing_cities
+                    .iter()
+                    .any(|city| city.controls_tile(tile_x, tile_y))
+                {
+                    tiles.push(TileCoordinate {
+                        x: tile_x,
+                        y: tile_y,
+                    });
+                }
+            }
+        }
+    }
+
+    tiles
+}
+
 pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: String) -> Result<()> {
     // Validate if the unit with `unit_id` is a settler and is at `x` and `y`.
     let unit_idx = ctx
@@ -154,6 +180,8 @@ pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: Str
         return err!(BuildingError::TileOccupied);
     }
 
+    let controlled_tiles = calculate_controlled_tiles(x, y, &ctx.accounts.player_account.cities);
+
     // Initialize the new City.
     let new_city = City::new(
         ctx.accounts.player_account.next_city_id,
@@ -163,9 +191,16 @@ pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: Str
         y,
         name,
         100,
+        controlled_tiles.clone(),
     );
 
     ctx.accounts.player_account.cities.push(new_city);
+
+    // Mark controlled tiles as discovered
+    for tile_coord in controlled_tiles {
+        let tile_index = (tile_coord.y * MAP_BOUND) + tile_coord.x;
+        ctx.accounts.game.map[tile_index as usize].discovered = true;
+    }
 
     // Remove the settler unit used to found the city.
     ctx.accounts.player_account.units.remove(unit_idx);
