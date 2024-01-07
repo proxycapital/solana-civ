@@ -1,5 +1,7 @@
+use crate::consts::*;
 use crate::errors::*;
 use crate::state::{City, TechnologyType};
+use crate::utils::*;
 use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone)]
@@ -12,6 +14,8 @@ pub struct Unit {
     pub y: u8,
     pub attack: u8,
     pub health: u8,
+    pub level: u8,
+    pub experience: u8,
     pub movement_range: u8,
     pub remaining_actions: u8,
     pub base_production_cost: u32,
@@ -55,6 +59,8 @@ impl Unit {
             base_gold_cost,
             base_resource_cost,
             maintenance_cost,
+            experience,
+            level,
         ) = Self::get_base_stats(unit_type);
 
         Self {
@@ -66,6 +72,8 @@ impl Unit {
             y,
             attack,
             health,
+            experience,
+            level,
             movement_range,
             remaining_actions,
             base_production_cost,
@@ -86,19 +94,21 @@ impl Unit {
     /// ### Returns
     ///
     /// A tuple containing values representing the base stats of the unit in the following order:
-    /// `(is_ranged, health, attack, movement_range, remaining_actions, base_production_cost, base_gold_cost, base_resource_cost, maintenance_cost)`.
-    pub fn get_base_stats(unit_type: UnitType) -> (bool, u8, u8, u8, u8, u32, u32, u32, i32) {
+    /// `(is_ranged, health, attack, movement_range, remaining_actions, base_production_cost, base_gold_cost, base_resource_cost, maintenance_cost, experience, level)`.
+    pub fn get_base_stats(
+        unit_type: UnitType,
+    ) -> (bool, u8, u8, u8, u8, u32, u32, u32, i32, u8, u8) {
         match unit_type {
-            UnitType::Settler => (false, 100, 0, 2, 1, 20, 100, 60, 0),
-            UnitType::Builder => (false, 100, 0, 2, 1, 20, 100, 0, 0),
-            UnitType::Warrior => (false, 100, 8, 2, 0, 20, 200, 0, 0),
-            UnitType::Archer => (true, 100, 10, 2, 0, 20, 200, 0, 1),
-            UnitType::Swordsman => (false, 100, 14, 2, 0, 30, 240, 10, 1),
-            UnitType::Horseman => (false, 100, 14, 3, 0, 30, 280, 10, 2),
-            UnitType::Crossbowman => (true, 100, 24, 2, 0, 40, 240, 0, 2),
-            UnitType::Musketman => (true, 100, 32, 2, 0, 50, 360, 0, 2),
-            UnitType::Rifleman => (true, 100, 40, 3, 0, 60, 420, 0, 4),
-            UnitType::Tank => (true, 100, 50, 4, 0, 80, 500, 0, 7),
+            UnitType::Settler => (false, 100, 0, 2, 1, 20, 100, 60, 0, 0, 0),
+            UnitType::Builder => (false, 100, 0, 2, 1, 20, 100, 0, 0, 0, 0),
+            UnitType::Warrior => (false, 100, 8, 2, 0, 20, 200, 0, 0, 0, 0),
+            UnitType::Archer => (true, 100, 10, 2, 0, 20, 200, 0, 1, 0, 0),
+            UnitType::Swordsman => (false, 100, 14, 2, 0, 30, 240, 10, 1, 0, 0),
+            UnitType::Horseman => (false, 100, 14, 3, 0, 30, 280, 10, 2, 0, 0),
+            UnitType::Crossbowman => (true, 100, 24, 2, 0, 40, 240, 0, 2, 0, 0),
+            UnitType::Musketman => (true, 100, 32, 2, 0, 50, 360, 0, 2, 0, 0),
+            UnitType::Rifleman => (true, 100, 40, 3, 0, 60, 420, 0, 4, 0, 0),
+            UnitType::Tank => (true, 100, 50, 4, 0, 80, 500, 0, 7, 0, 0),
         }
     }
 
@@ -122,9 +132,31 @@ impl Unit {
         Unit::get_base_stats(unit_type).8
     }
 
+    pub fn get_expereince(unit_type: UnitType) -> u8 {
+        Unit::get_base_stats(unit_type).9
+    }
+
     fn can_attack(&self) -> bool {
         // only 2 units cannot attack: Settler and Builder
         !matches!(self.unit_type, UnitType::Settler | UnitType::Builder)
+    }
+
+    fn apply_damage(&mut self, damage: u8) {
+        if damage >= self.health {
+            self.is_alive = false;
+            self.health = 0;
+        } else {
+            self.health -= damage;
+        }
+    }
+
+    fn update_experience(&mut self, is_killer: bool) {
+        let exp_gain = if is_killer {
+            2 * EXP_PER_ATTACK
+        } else {
+            EXP_PER_ATTACK
+        };
+        self.experience = get_new_exp(self.level, self.experience, exp_gain);
     }
 
     pub fn attack_unit(
@@ -174,28 +206,15 @@ impl Unit {
         let given_damage = (given_damage_raw.max(0.0).min(255.0)) as u8;
         let taken_damage = (taken_damage_raw.max(0.0).min(255.0)) as u8;
 
-        msg!("Given damage: {}", given_damage);
-        msg!("Taken damage: {}", taken_damage);
-        // Deduct defender's health by the given damage
-        if given_damage >= defender.health {
-            defender.is_alive = false;
-            defender.health = 0;
-            msg!("Defender is dead");
-        } else {
-            defender.health -= given_damage;
-            msg!("Defender HP after attack: {}", defender.health);
-        }
+        // Apply damage to defender and update attacker's experience
+        defender.apply_damage(given_damage);
+        self.update_experience(!defender.is_alive);
 
-        // Deduct attacker's health by the taken damage
-        if taken_damage >= self.health {
-            self.is_alive = false;
-            self.health = 0;
-            msg!("Attacker is dead");
-        } else {
-            self.health -= taken_damage;
-            msg!("Attacker HP after attack: {}", self.health);
-        }
-        // after the attack unit cannot move or attack anymore
+        // Apply damage to self (attacker) and update defender's experience
+        self.apply_damage(taken_damage);
+        defender.update_experience(!self.is_alive);
+
+        // After the attack unit cannot move or attack anymore
         self.movement_range = 0;
 
         Ok(())

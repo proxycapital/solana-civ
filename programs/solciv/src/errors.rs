@@ -37,6 +37,12 @@ pub enum UnitError {
 
     #[msg("Not enough of food to heal the unit")]
     NotEnoughResources,
+
+    #[msg("Max level reached")]
+    MaxLevelReached,
+
+    #[msg("Not enought experience to level up unit")]
+    NotEnoughExp,
 }
 
 #[error_code]

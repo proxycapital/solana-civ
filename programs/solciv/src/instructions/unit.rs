@@ -1,6 +1,7 @@
 use crate::consts::*;
 use crate::errors::*;
 use crate::state::*;
+use crate::utils::*;
 use anchor_lang::prelude::*;
 
 pub fn move_unit(ctx: Context<MoveUnit>, unit_id: u32, x: u8, y: u8) -> Result<()> {
@@ -72,6 +73,49 @@ pub fn move_unit(ctx: Context<MoveUnit>, unit_id: u32, x: u8, y: u8) -> Result<(
             }
         }
     }
+
+    Ok(())
+}
+
+pub fn upgrade_unit(ctx: Context<UpgradeUnit>, unit_id: u32) -> Result<()> {
+    let units = &mut ctx.accounts.player_account.units;
+    let unit_idx = units
+        .iter()
+        .position(|u| u.unit_id == unit_id)
+        .ok_or(UnitError::UnitNotFound)?;
+
+    let unit_exp = units[unit_idx].experience;
+    let unit_level = units[unit_idx].level;
+    let unit_health = units[unit_idx].health;
+    let unit_movement_range = units[unit_idx].movement_range;
+
+    // Unit doesn't have movement range
+    if unit_movement_range == 0 {
+        return err!(UnitError::NoMovementPoints);
+    }
+
+    // Check if max level was reached
+    if unit_level >= EXP_THRESHOLDS.len() as u8 {
+        return err!(UnitError::MaxLevelReached);
+    }
+
+    // Check if unit has enough experience to level up
+    if unit_exp < EXP_THRESHOLDS[unit_level as usize] {
+        return err!(UnitError::NotEnoughExp);
+    }
+
+    // Level Up
+    if unit_health >= 70 {
+        ctx.accounts.player_account.units[unit_idx].health = 100;
+    } else {
+        ctx.accounts.player_account.units[unit_idx].health += 30;
+    }
+
+    ctx.accounts.player_account.units[unit_idx].attack += 2;
+    ctx.accounts.player_account.units[unit_idx].level += 1;
+
+    // After the upgrade, the unit cannot move or attack anymore
+    ctx.accounts.player_account.units[unit_idx].movement_range = 0;
 
     Ok(())
 }
@@ -256,6 +300,7 @@ pub fn attack_unit(ctx: Context<AttackUnit>, attacker_id: u32, defender_id: u32)
     }
 
     attacker.attack_unit(defender, None)?;
+
     if !defender.is_alive {
         ctx.accounts.player_account.resources.gems = ctx
             .accounts
@@ -302,28 +347,11 @@ pub fn attack_city(ctx: Context<AttackCity>, attacker_id: u32, city_id: u32) -> 
         return err!(UnitError::OutOfAttackRange);
     }
 
-    let city_was_destroyed = {
-        let target_city = ctx
-            .accounts
-            .npc_account
-            .cities
-            .iter_mut()
-            .find(|c| c.city_id == city_id)
-            .ok_or(CityError::CityNotFound)?;
+    attacker.attack_city(target_city)?;
+    attacker.movement_range = 0;
+    attacker.experience = get_new_exp(attacker.level, attacker.experience, 3);
 
-        let dist_x = (attacker.x as i16 - target_city.x as i16).abs();
-        let dist_y = (attacker.y as i16 - target_city.y as i16).abs();
-        let dist = std::cmp::max(dist_x, dist_y) as u8;
-
-        if dist != 1 {
-            return err!(UnitError::OutOfAttackRange);
-        }
-
-        attacker.attack_city(target_city)?;
-        attacker.movement_range = 0;
-
-        target_city.health == 0
-    };
+    let city_was_destroyed = target_city.health == 0;
 
     if city_was_destroyed {
         ctx.accounts.player_account.resources.gems = ctx
@@ -364,6 +392,14 @@ pub struct MoveUnit<'info> {
 
 #[derive(Accounts)]
 pub struct HealUnit<'info> {
+    #[account(mut, has_one = player)]
+    pub player_account: Account<'info, Player>,
+    #[account(mut)]
+    pub player: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct UpgradeUnit<'info> {
     #[account(mut, has_one = player)]
     pub player_account: Account<'info, Player>,
     #[account(mut)]

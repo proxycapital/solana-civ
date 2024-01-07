@@ -4,6 +4,7 @@ mod consts;
 mod errors;
 mod instructions;
 mod state;
+mod utils;
 
 use crate::instructions::*;
 use crate::state::{ProductionItem, TechnologyType};
@@ -33,6 +34,10 @@ pub mod solciv {
 
     pub fn heal_unit(ctx: Context<HealUnit>, unit_id: u32) -> Result<()> {
         instructions::heal_unit(ctx, unit_id)
+    }
+
+    pub fn upgrade_unit(ctx: Context<UpgradeUnit>, unit_id: u32) -> Result<()> {
+        instructions::upgrade_unit(ctx, unit_id)
     }
 
     pub fn found_city(
