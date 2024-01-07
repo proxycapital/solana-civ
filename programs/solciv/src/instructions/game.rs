@@ -271,6 +271,8 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
 
     let player_account = &mut ctx.accounts.player_account;
 
+    process_npc_movements_and_attacks(&mut ctx.accounts.npc_account.units, player_account)?;
+
     for city in &mut player_account.cities {
         city.accumulated_food += city.food_yield as i32;
 
@@ -291,9 +293,12 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
                 city.accumulated_food = 0;
             }
         }
-    }
 
-    process_npc_movements_and_attacks(&mut ctx.accounts.npc_account.units, player_account)?;
+        // Auto-healing of cities
+        if city.health < 100 {
+            city.health = std::cmp::min(city.health + 5, 100);
+        }
+    }
 
     // The healing should happen only after NPC attacks
     // Reset units' movement range & heal if needed
