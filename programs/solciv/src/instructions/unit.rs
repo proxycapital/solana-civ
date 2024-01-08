@@ -261,14 +261,18 @@ pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Re
     }
 
     // Check if the tile is controlled by any of the player's cities
-    let is_controlled = ctx.accounts.player_account.cities.iter().any(|city| {
-        city.controlled_tiles
-            .iter()
-            .any(|tile| tile.x == x && tile.y == y)
-    });
-    if !is_controlled {
-        return err!(TileError::TileNotControlled);
-    }
+    let controlling_city_id = ctx
+        .accounts
+        .player_account
+        .cities
+        .iter()
+        .find(|city| {
+            city.controlled_tiles
+                .iter()
+                .any(|tile| tile.x == x && tile.y == y)
+        })
+        .map(|city| city.city_id)
+        .ok_or(TileError::TileNotControlled)?;
 
     // Initialize the new Tile and push it to player_account tiles vector.
     let tile_type = match ctx.accounts.game.map[map_idx].terrain {
@@ -283,6 +287,18 @@ pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Re
 
     let new_tile = Tile::new(tile_type, x, y);
     ctx.accounts.player_account.tiles.push(new_tile);
+
+    // Special case for Farm: increase the city's food yield
+    if tile_type == TileType::Farm {
+        let city = ctx
+            .accounts
+            .player_account
+            .cities
+            .iter_mut()
+            .find(|city| city.city_id == controlling_city_id)
+            .ok_or(TileError::TileNotControlled)?;
+        city.food_yield += 2;
+    }
 
     // Reduce remaining_actions of the Builder and remove it if remaining_actions hit 0.
     ctx.accounts.player_account.units[unit_idx].remaining_actions -= 1;
