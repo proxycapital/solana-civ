@@ -61,25 +61,28 @@ pub enum BuildingType {
     ResidentialComplex,
 }
 
+pub struct NewCityParams {
+    pub city_id: u32,
+    pub player: Pubkey,
+    pub game: Pubkey,
+    pub x: u8,
+    pub y: u8,
+    pub name: String,
+    pub health: u32,
+    pub controlled_tiles: Vec<TileCoordinate>,
+}
+
 impl City {
-    pub fn new(
-        city_id: u32,
-        player: Pubkey,
-        game: Pubkey,
-        x: u8,
-        y: u8,
-        name: String,
-        health: u32,
-        controlled_tiles: Vec<TileCoordinate>,
-    ) -> Self {
+    pub fn new(params: NewCityParams) -> Self {
         Self {
-            city_id,
-            name,
-            player,
-            game,
-            x,
-            y,
-            health,
+            city_id: params.city_id,
+            name: params.name,
+            player: params.player,
+            game: params.game,
+            x: params.x,
+            y: params.y,
+            health: params.health,
+            controlled_tiles: params.controlled_tiles,
             wall_health: 0,
             attack: 0,
             population: 1,
@@ -92,7 +95,6 @@ impl City {
             accumulated_production: 0,
             accumulated_food: 0,
             housing: 4,
-            controlled_tiles,
         }
     }
 

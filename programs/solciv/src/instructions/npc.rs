@@ -9,28 +9,27 @@ pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
     ctx.accounts.npc_account.next_unit_id = 0;
     ctx.accounts.game.npc = ctx.accounts.npc_account.key();
 
-    ctx.accounts.npc_account.cities = vec![
-        City::new(
-            0,
-            ctx.accounts.npc_account.player,
-            ctx.accounts.game.key(),
-            2,
-            17,
-            "Barbarian Village".to_string(),
-            1000,
-            vec![TileCoordinate { x: 2, y: 17 }],
-        ),
-        City::new(
-            1,
-            ctx.accounts.npc_account.player,
-            ctx.accounts.game.key(),
-            17,
-            17,
-            "Barbarian Village".to_string(),
-            1000,
-            vec![TileCoordinate { x: 17, y: 17 }],
-        ),
-    ];
+    let npc_one = NewCityParams {
+        city_id: 0,
+        player: ctx.accounts.npc_account.player,
+        game: ctx.accounts.game.key(),
+        x: 2,
+        y: 17,
+        name: "Barbarian Village".to_string(),
+        health: 1000,
+        controlled_tiles: vec![TileCoordinate { x: 2, y: 17 }],
+    };
+    let npc_two = NewCityParams {
+        city_id: 0,
+        player: ctx.accounts.npc_account.player,
+        game: ctx.accounts.game.key(),
+        x: 17,
+        y: 17,
+        name: "Barbarian Village".to_string(),
+        health: 1000,
+        controlled_tiles: vec![TileCoordinate { x: 17, y: 17 }],
+    };
+    ctx.accounts.npc_account.cities = vec![City::new(npc_one), City::new(npc_two)];
 
     // Initialize units for the NPC.
     ctx.accounts.npc_account.units = vec![Unit::new(

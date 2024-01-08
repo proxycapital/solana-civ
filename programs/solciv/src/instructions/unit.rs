@@ -129,16 +129,16 @@ fn calculate_controlled_tiles(x: u8, y: u8, existing_cities: &[City]) -> Vec<Til
             let tile_y = (y as i16 + dy) as u8;
 
             // Check map boundaries and existing city control
-            if tile_x < MAP_BOUND && tile_y < MAP_BOUND {
-                if !existing_cities
+            if tile_x < MAP_BOUND
+                && tile_y < MAP_BOUND
+                && !existing_cities
                     .iter()
                     .any(|city| city.controls_tile(tile_x, tile_y))
-                {
-                    tiles.push(TileCoordinate {
-                        x: tile_x,
-                        y: tile_y,
-                    });
-                }
+            {
+                tiles.push(TileCoordinate {
+                    x: tile_x,
+                    y: tile_y,
+                });
             }
         }
     }
@@ -183,16 +183,18 @@ pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: Str
     let controlled_tiles = calculate_controlled_tiles(x, y, &ctx.accounts.player_account.cities);
 
     // Initialize the new City.
-    let new_city = City::new(
-        ctx.accounts.player_account.next_city_id,
-        ctx.accounts.player_account.player,
-        ctx.accounts.game.key(),
+    let params = NewCityParams {
+        city_id: ctx.accounts.player_account.next_city_id,
+        player: ctx.accounts.player_account.player,
+        game: ctx.accounts.game.key(),
         x,
         y,
         name,
-        100,
-        controlled_tiles.clone(),
-    );
+        health: 100,
+        controlled_tiles: controlled_tiles.clone(),
+    };
+
+    let new_city = City::new(params);
 
     ctx.accounts.player_account.cities.push(new_city);
 
