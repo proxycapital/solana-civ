@@ -258,6 +258,16 @@ pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Re
         return err!(TileError::TileOccupied);
     }
 
+    // Check if the tile is controlled by any of the player's cities
+    let is_controlled = ctx.accounts.player_account.cities.iter().any(|city| {
+        city.controlled_tiles
+            .iter()
+            .any(|tile| tile.x == x && tile.y == y)
+    });
+    if !is_controlled {
+        return err!(TileError::TileNotControlled);
+    }
+
     // Initialize the new Tile and push it to player_account tiles vector.
     let tile_type = match ctx.accounts.game.map[map_idx].terrain {
         1 => TileType::IronMine,

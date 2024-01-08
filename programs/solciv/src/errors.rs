@@ -58,6 +58,9 @@ pub enum TileError {
 
     #[msg("Tile is occupied by another construction")]
     TileOccupied,
+
+    #[msg("Tile doesn't belong to the player")]
+    TileNotControlled,
 }
 
 #[error_code]
