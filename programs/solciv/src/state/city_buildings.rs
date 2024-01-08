@@ -22,6 +22,13 @@ pub struct City {
     pub accumulated_production: u32,
     pub accumulated_food: i32,
     pub housing: u32,
+    pub controlled_tiles: Vec<TileCoordinate>,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
+pub struct TileCoordinate {
+    pub x: u8,
+    pub y: u8,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq)]
@@ -54,24 +61,28 @@ pub enum BuildingType {
     ResidentialComplex,
 }
 
+pub struct NewCityParams {
+    pub city_id: u32,
+    pub player: Pubkey,
+    pub game: Pubkey,
+    pub x: u8,
+    pub y: u8,
+    pub name: String,
+    pub health: u32,
+    pub controlled_tiles: Vec<TileCoordinate>,
+}
+
 impl City {
-    pub fn new(
-        city_id: u32,
-        player: Pubkey,
-        game: Pubkey,
-        x: u8,
-        y: u8,
-        name: String,
-        health: u32,
-    ) -> Self {
+    pub fn new(params: NewCityParams) -> Self {
         Self {
-            city_id,
-            name,
-            player,
-            game,
-            x,
-            y,
-            health,
+            city_id: params.city_id,
+            name: params.name,
+            player: params.player,
+            game: params.game,
+            x: params.x,
+            y: params.y,
+            health: params.health,
+            controlled_tiles: params.controlled_tiles,
             wall_health: 0,
             attack: 0,
             population: 1,
@@ -85,6 +96,12 @@ impl City {
             accumulated_food: 0,
             housing: 4,
         }
+    }
+
+    pub fn controls_tile(&self, tile_x: u8, tile_y: u8) -> bool {
+        self.controlled_tiles
+            .iter()
+            .any(|tile| tile.x == tile_x && tile.y == tile_y)
     }
 
     pub fn construct_building(&mut self, building_type: BuildingType) -> Result<()> {

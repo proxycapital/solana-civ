@@ -169,6 +169,7 @@ describe("solciv", () => {
     expect(city.y).equal(unit.y);
     expect(city.cityId).equal(0);
     expect(city.name).equal(name);
+    console.log(city.controlledTiles);
   });
 
   it("Should add building to production queue", async () => {

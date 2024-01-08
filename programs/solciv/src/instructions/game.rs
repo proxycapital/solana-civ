@@ -125,6 +125,24 @@ fn process_npc_movements_and_attacks(npc_units: &mut Vec<Unit>, player: &mut Pla
             continue;
         }
 
+        // Level up check
+        if npc_units[i].level < EXP_THRESHOLDS.len() as u8
+            && npc_units[i].experience >= EXP_THRESHOLDS[npc_units[i].level as usize]
+        {
+            npc_units[i].level += 1;
+            npc_units[i].attack += 2;
+            npc_units[i].health = std::cmp::min(npc_units[i].health + 30, 100);
+            npc_units[i].movement_range = 0;
+
+            msg!(
+                "NPC unit #{} leveled up to level {}",
+                npc_units[i].unit_id,
+                npc_units[i].level
+            );
+
+            continue; // Skip to the next unit
+        }
+
         let mut min_dist = u16::MAX;
         let mut closest_target: Option<(u8, u8)> = None;
 

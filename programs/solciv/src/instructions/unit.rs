@@ -120,6 +120,32 @@ pub fn upgrade_unit(ctx: Context<UpgradeUnit>, unit_id: u32) -> Result<()> {
     Ok(())
 }
 
+fn calculate_controlled_tiles(x: u8, y: u8, existing_cities: &[City]) -> Vec<TileCoordinate> {
+    let mut tiles = Vec::new();
+
+    for dx in -2..=2 {
+        for dy in -2..=2 {
+            let tile_x = (x as i16 + dx) as u8;
+            let tile_y = (y as i16 + dy) as u8;
+
+            // Check map boundaries and existing city control
+            if tile_x < MAP_BOUND
+                && tile_y < MAP_BOUND
+                && !existing_cities
+                    .iter()
+                    .any(|city| city.controls_tile(tile_x, tile_y))
+            {
+                tiles.push(TileCoordinate {
+                    x: tile_x,
+                    y: tile_y,
+                });
+            }
+        }
+    }
+
+    tiles
+}
+
 pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: String) -> Result<()> {
     // Validate if the unit with `unit_id` is a settler and is at `x` and `y`.
     let unit_idx = ctx
@@ -154,18 +180,29 @@ pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: Str
         return err!(BuildingError::TileOccupied);
     }
 
+    let controlled_tiles = calculate_controlled_tiles(x, y, &ctx.accounts.player_account.cities);
+
     // Initialize the new City.
-    let new_city = City::new(
-        ctx.accounts.player_account.next_city_id,
-        ctx.accounts.player_account.player,
-        ctx.accounts.game.key(),
+    let params = NewCityParams {
+        city_id: ctx.accounts.player_account.next_city_id,
+        player: ctx.accounts.player_account.player,
+        game: ctx.accounts.game.key(),
         x,
         y,
         name,
-        100,
-    );
+        health: 100,
+        controlled_tiles: controlled_tiles.clone(),
+    };
+
+    let new_city = City::new(params);
 
     ctx.accounts.player_account.cities.push(new_city);
+
+    // Mark controlled tiles as discovered
+    for tile_coord in controlled_tiles {
+        let tile_index = (tile_coord.y * MAP_BOUND) + tile_coord.x;
+        ctx.accounts.game.map[tile_index as usize].discovered = true;
+    }
 
     // Remove the settler unit used to found the city.
     ctx.accounts.player_account.units.remove(unit_idx);
@@ -223,6 +260,20 @@ pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Re
         return err!(TileError::TileOccupied);
     }
 
+    // Check if the tile is controlled by any of the player's cities
+    let controlling_city_id = ctx
+        .accounts
+        .player_account
+        .cities
+        .iter()
+        .find(|city| {
+            city.controlled_tiles
+                .iter()
+                .any(|tile| tile.x == x && tile.y == y)
+        })
+        .map(|city| city.city_id)
+        .ok_or(TileError::TileNotControlled)?;
+
     // Initialize the new Tile and push it to player_account tiles vector.
     let tile_type = match ctx.accounts.game.map[map_idx].terrain {
         1 => TileType::IronMine,
@@ -236,6 +287,18 @@ pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Re
 
     let new_tile = Tile::new(tile_type, x, y);
     ctx.accounts.player_account.tiles.push(new_tile);
+
+    // Special case for Farm: increase the city's food yield
+    if tile_type == TileType::Farm {
+        let city = ctx
+            .accounts
+            .player_account
+            .cities
+            .iter_mut()
+            .find(|city| city.city_id == controlling_city_id)
+            .ok_or(TileError::TileNotControlled)?;
+        city.food_yield += 2;
+    }
 
     // Reduce remaining_actions of the Builder and remove it if remaining_actions hit 0.
     ctx.accounts.player_account.units[unit_idx].remaining_actions -= 1;
