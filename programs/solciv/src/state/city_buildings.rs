@@ -23,9 +23,11 @@ pub struct City {
     pub accumulated_food: i32,
     pub housing: u32,
     pub controlled_tiles: Vec<TileCoordinate>,
+    pub level: u32,
+    pub growth_points: u32,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TileCoordinate {
     pub x: u8,
     pub y: u8,
@@ -95,6 +97,8 @@ impl City {
             accumulated_production: 0,
             accumulated_food: 0,
             housing: 4,
+            level: 0,
+            growth_points: 0,
         }
     }
 
