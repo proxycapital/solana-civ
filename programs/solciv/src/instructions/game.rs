@@ -43,10 +43,22 @@ fn find_adjacent_tiles(tiles: &Vec<TileCoordinate>) -> Vec<TileCoordinate> {
 
     for tile in tiles {
         let possible_adjacents = [
-            TileCoordinate { x: tile.x, y: tile.y.saturating_sub(1) },
-            TileCoordinate { x: tile.x, y: tile.y + 1 },
-            TileCoordinate { x: tile.x.saturating_sub(1), y: tile.y },
-            TileCoordinate { x: tile.x + 1, y: tile.y },
+            TileCoordinate {
+                x: tile.x,
+                y: tile.y.saturating_sub(1),
+            },
+            TileCoordinate {
+                x: tile.x,
+                y: tile.y + 1,
+            },
+            TileCoordinate {
+                x: tile.x.saturating_sub(1),
+                y: tile.y,
+            },
+            TileCoordinate {
+                x: tile.x + 1,
+                y: tile.y,
+            },
         ];
 
         for adj in possible_adjacents {
@@ -56,7 +68,7 @@ fn find_adjacent_tiles(tiles: &Vec<TileCoordinate>) -> Vec<TileCoordinate> {
         }
     }
 
-    return adjacent_tiles;
+    adjacent_tiles
 }
 
 fn calculate_resources(player_account: &Player) -> (i32, u32, u32, u32, u32, u32) {
@@ -339,7 +351,7 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
         }
 
         // growth city
-        city.growth_points += city.population * 1; // 1 citizen growth points generated
+        city.growth_points += city.population; // 1 citizen growth points generated
         let points_need = 10.0 + (6.0 * city.level as f32).powf(1.3);
 
         if city.growth_points as f32 >= points_need {
@@ -350,7 +362,8 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
 
             let clock = Clock::get()?;
             let random_factor = clock.unix_timestamp % 10;
-            city.controlled_tiles.push(adjacent_tiles[random_factor as usize]);
+            city.controlled_tiles
+                .push(adjacent_tiles[random_factor as usize]);
         }
     }
 
