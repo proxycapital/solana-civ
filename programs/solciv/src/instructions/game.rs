@@ -38,6 +38,27 @@ fn heal_units_and_reset_movement_range(units: &mut [Unit]) {
     }
 }
 
+fn find_adjacent_tiles(tiles: &Vec<TileCoordinate>) -> Vec<TileCoordinate> {
+    let mut adjacent_tiles = Vec::new();
+
+    for tile in tiles {
+        let possible_adjacents = [
+            TileCoordinate { x: tile.x, y: tile.y.saturating_sub(1) },
+            TileCoordinate { x: tile.x, y: tile.y + 1 },
+            TileCoordinate { x: tile.x.saturating_sub(1), y: tile.y },
+            TileCoordinate { x: tile.x + 1, y: tile.y },
+        ];
+
+        for adj in possible_adjacents {
+            if !tiles.contains(&adj) && !adjacent_tiles.contains(&adj) {
+                adjacent_tiles.push(adj);
+            }
+        }
+    }
+
+    return adjacent_tiles;
+}
+
 fn calculate_resources(player_account: &Player) -> (i32, u32, u32, u32, u32, u32) {
     // Calculate resources yielded by cities and tiles.
     // This function will return a tuple (gold, wood, stone, iron, horses, science).
@@ -315,6 +336,21 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
         // Auto-healing of cities
         if city.health < 100 {
             city.health = std::cmp::min(city.health + 5, 100);
+        }
+
+        // growth city
+        city.growth_points += city.population * 1; // 1 citizen growth points generated
+        let points_need = 10.0 + (6.0 * city.level as f32).powf(1.3);
+
+        if city.growth_points as f32 >= points_need {
+            city.growth_points = 0;
+            city.level += 1;
+
+            let adjacent_tiles = find_adjacent_tiles(&city.controlled_tiles);
+
+            let clock = Clock::get()?;
+            let random_factor = clock.unix_timestamp % 10;
+            city.controlled_tiles.push(adjacent_tiles[random_factor as usize]);
         }
     }
 
