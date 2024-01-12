@@ -379,9 +379,11 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
 
             let adjacent_tiles = find_adjacent_tiles(&city.controlled_tiles, &all_controlled_tiles);
 
-            let clock = Clock::get()?;
-            let random_factor = clock.unix_timestamp as usize % adjacent_tiles.len();
-            city.controlled_tiles.push(adjacent_tiles[random_factor]);
+            if !adjacent_tiles.is_empty() {
+                let clock = Clock::get()?;
+                let random_factor = clock.unix_timestamp as usize % adjacent_tiles.len();
+                city.controlled_tiles.push(adjacent_tiles[random_factor]);
+            };
         }
     }
 
