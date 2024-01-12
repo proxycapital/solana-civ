@@ -1,6 +1,8 @@
 use crate::consts::*;
 use crate::state::*;
 use anchor_lang::prelude::*;
+use std::collections::HashSet;
+use std::iter::FromIterator;
 
 pub fn initialize_game(ctx: Context<InitializeGame>, map: [u8; 400]) -> Result<()> {
     ctx.accounts.game.player = ctx.accounts.player.key();
@@ -38,37 +40,45 @@ fn heal_units_and_reset_movement_range(units: &mut [Unit]) {
     }
 }
 
-fn find_adjacent_tiles(tiles: &Vec<TileCoordinate>) -> Vec<TileCoordinate> {
-    let mut adjacent_tiles = Vec::new();
+fn find_adjacent_tiles(
+    tiles: &[TileCoordinate],
+    controlled_tiles: &[TileCoordinate],
+) -> Vec<TileCoordinate> {
+    let controlled_set: HashSet<_> = HashSet::from_iter(controlled_tiles.iter());
+    let tile_set: HashSet<_> = HashSet::from_iter(tiles.iter());
 
-    for tile in tiles {
-        let possible_adjacents = [
-            TileCoordinate {
-                x: tile.x,
-                y: tile.y.saturating_sub(1),
-            },
-            TileCoordinate {
-                x: tile.x,
-                y: tile.y + 1,
-            },
-            TileCoordinate {
-                x: tile.x.saturating_sub(1),
-                y: tile.y,
-            },
-            TileCoordinate {
-                x: tile.x + 1,
-                y: tile.y,
-            },
-        ];
+    tiles
+        .iter()
+        .flat_map(adjacent_coords)
+        .filter(|coord| {
+            is_within_bounds(coord) && !tile_set.contains(coord) && !controlled_set.contains(coord)
+        })
+        .collect()
+}
 
-        for adj in possible_adjacents {
-            if !tiles.contains(&adj) && !adjacent_tiles.contains(&adj) {
-                adjacent_tiles.push(adj);
-            }
-        }
-    }
+fn adjacent_coords(tile: &TileCoordinate) -> Vec<TileCoordinate> {
+    vec![
+        TileCoordinate {
+            x: tile.x,
+            y: tile.y.saturating_sub(1),
+        },
+        TileCoordinate {
+            x: tile.x,
+            y: tile.y + 1,
+        },
+        TileCoordinate {
+            x: tile.x.saturating_sub(1),
+            y: tile.y,
+        },
+        TileCoordinate {
+            x: tile.x + 1,
+            y: tile.y,
+        },
+    ]
+}
 
-    adjacent_tiles
+fn is_within_bounds(coord: &TileCoordinate) -> bool {
+    coord.x < MAP_BOUND && coord.y < MAP_BOUND
 }
 
 fn calculate_resources(player_account: &Player) -> (i32, u32, u32, u32, u32, u32) {
@@ -324,7 +334,16 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
 
     process_npc_movements_and_attacks(&mut ctx.accounts.npc_account.units, player_account)?;
 
-    for city in &mut player_account.cities {
+    for i in 0..player_account.cities.len() {
+        let all_controlled_tiles: Vec<TileCoordinate> = player_account
+            .cities
+            .iter()
+            .flat_map(|city| &city.controlled_tiles)
+            .cloned()
+            .collect();
+
+        let city = &mut player_account.cities[i];
+
         city.accumulated_food += city.food_yield as i32;
 
         // Deduct food for population maintenance
@@ -358,12 +377,11 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
             city.growth_points = 0;
             city.level += 1;
 
-            let adjacent_tiles = find_adjacent_tiles(&city.controlled_tiles);
+            let adjacent_tiles = find_adjacent_tiles(&city.controlled_tiles, &all_controlled_tiles);
 
             let clock = Clock::get()?;
-            let random_factor = clock.unix_timestamp % 10;
-            city.controlled_tiles
-                .push(adjacent_tiles[random_factor as usize]);
+            let random_factor = clock.unix_timestamp as usize % adjacent_tiles.len();
+            city.controlled_tiles.push(adjacent_tiles[random_factor]);
         }
     }
 

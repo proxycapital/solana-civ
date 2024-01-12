@@ -27,7 +27,7 @@ pub struct City {
     pub growth_points: u32,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TileCoordinate {
     pub x: u8,
     pub y: u8,
