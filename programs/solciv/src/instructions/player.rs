@@ -2,7 +2,7 @@ use crate::consts::*;
 use crate::state::*;
 use anchor_lang::prelude::*;
 
-pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
+pub fn initialize_player(ctx: Context<InitializePlayer>, position: TileCoordinate) -> Result<()> {
     ctx.accounts.player_account.game = ctx.accounts.game.key();
     ctx.accounts.player_account.player = ctx.accounts.player.key();
     ctx.accounts.player_account.points = 0;
@@ -24,29 +24,42 @@ pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
             ctx.accounts.player.key(),
             ctx.accounts.game.key(),
             UnitType::Settler,
-            2,
-            2,
+            position.x,
+            position.y,
         ),
         Unit::new(
             1,
             ctx.accounts.player.key(),
             ctx.accounts.game.key(),
             UnitType::Builder,
-            3,
-            2,
+            position.x + 1,
+            position.y,
         ),
         Unit::new(
             2,
             ctx.accounts.player.key(),
             ctx.accounts.game.key(),
             UnitType::Warrior,
-            2,
-            3,
+            position.x,
+            position.y + 1,
         ),
     ];
     ctx.accounts.player_account.next_unit_id = 3;
 
     ctx.accounts.player_account.researched_technologies = vec![];
+
+    /* Set surrounding tiles to 'discovered' */
+    let start_x = position.x.saturating_sub(2).max(0);
+    let end_x = position.x.saturating_add(2).min(MAP_BOUND - 1);
+    let start_y = position.y.saturating_sub(2).max(0);
+    let end_y = position.y.saturating_add(2).min(MAP_BOUND - 1);
+
+    for i in start_x..=end_x {
+        for j in start_y..=end_y {
+            let index = (j as usize) * MAP_BOUND as usize + i as usize;
+            ctx.accounts.game.map[index].discovered = true;
+        }
+    }
 
     msg!("Player created!");
 
@@ -55,6 +68,7 @@ pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
 
 #[derive(Accounts)]
 pub struct InitializePlayer<'info> {
+    #[account(mut)]
     pub game: Box<Account<'info, Game>>,
 
     #[account(
