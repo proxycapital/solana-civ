@@ -200,8 +200,8 @@ pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: Str
 
     // Mark controlled tiles as discovered
     for tile_coord in controlled_tiles {
-        let tile_index = (tile_coord.y * MAP_BOUND) + tile_coord.x;
-        ctx.accounts.game.map[tile_index as usize].discovered = true;
+        let tile_index = (tile_coord.y as usize * MAP_BOUND as usize) + tile_coord.x as usize;
+        ctx.accounts.game.map[tile_index].discovered = true;
     }
 
     // Remove the settler unit used to found the city.

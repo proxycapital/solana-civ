@@ -10,15 +10,11 @@ pub fn initialize_game(ctx: Context<InitializeGame>, map: [u8; 400]) -> Result<(
     ctx.accounts.game.defeat = false;
     ctx.accounts.game.victory = false;
 
-    // Set the tiles from 0 to 7 as discovered and initialize all tiles with a terrain type
     for i in 0..20 {
         for j in 0..20 {
             let index = i * 20 + j;
-
             ctx.accounts.game.map[index].terrain = map[index];
-
-            // Mark tiles from (0,0) to (7,7) as discovered
-            ctx.accounts.game.map[index].discovered = i < 8 && j < 8;
+            ctx.accounts.game.map[index].discovered = false;
         }
     }
 

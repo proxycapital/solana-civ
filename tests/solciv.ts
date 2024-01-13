@@ -40,14 +40,29 @@ describe("solciv", () => {
     });
   }
 
+  // Helper function to generate random coordinates during game initialization
+  function getRandomCoordinates() {
+    // don't spawn on the border tiles, skipping the first and last row and column
+    const min = 1;
+    const max = 18;
+    const x = Math.floor(Math.random() * (max - min + 1)) + min;
+    const y = Math.floor(Math.random() * (max - min + 1)) + min;
+    return { x, y };
+  }
+
+  // Function to calculate distance between two points on the grid
+  function calculateDistance(point1: { x: number; y: number }, point2: { x: number; y: number }) {
+    return Math.sqrt(Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2));
+  }
+
+  const playerLocation = getRandomCoordinates();
+
   it("Initialize game", async () => {
     // generate random 20x20 map with tile types from 1 to 9
     const randomMap = Array.from({ length: 400 }, () => Math.floor(Math.random() * 9) + 1);
 
-    // this is needed for the future test of upgrading tiles
-    // Builder is initialized at (3, 2) coordinates
     // "6" value is the land type that can be upgraded to "Farm"
-    randomMap[3 + 2 * 20] = 6;
+    randomMap[playerLocation.x + playerLocation.y * 20 + 1] = 6;
 
     const accounts = {
       game: gameKey,
@@ -68,10 +83,17 @@ describe("solciv", () => {
       player: provider.publicKey,
       systemProgram: anchor.web3.SystemProgram.programId,
     };
-    const tx = await program.methods.initializePlayer().accounts(accounts).rpc();
+    const position = playerLocation;
+    const tx = await program.methods.initializePlayer(position).accounts(accounts).rpc();
     const account = await program.account.player.fetch(playerKey);
     expect(account.units.length).equal(3);
     expect(account.nextUnitId).equal(3);
+
+    // Fetch the game account to check if the initial position set to 'discovered'
+    const gameAccount = await program.account.game.fetch(gameKey);
+    const MAP_BOUND = 20;
+    const tileIndex = position.y * MAP_BOUND + position.x;
+    expect(gameAccount.map[tileIndex].discovered).to.be.true;
   });
 
   it("Initialize NPC with units and cities", async () => {
@@ -81,7 +103,19 @@ describe("solciv", () => {
       player: provider.publicKey,
       systemProgram: anchor.web3.SystemProgram.programId,
     };
-    const tx = await program.methods.initializeNpc().accounts(accounts).rpc();
+    // Generate random NPC locations with distance check
+    let npcPosition1, npcPosition2;
+    do {
+      npcPosition1 = getRandomCoordinates();
+    } while (calculateDistance(playerLocation, npcPosition1) < 10);
+
+    do {
+      npcPosition2 = getRandomCoordinates();
+    } while (
+      calculateDistance(playerLocation, npcPosition2) < 10 ||
+      calculateDistance(npcPosition1, npcPosition2) < 10
+    );
+    const tx = await program.methods.initializeNpc(npcPosition1, npcPosition2).accounts(accounts).rpc();
     const account = await program.account.npc.fetch(npcKey);
 
     expect(account.units.length).equal(1);
@@ -113,9 +147,13 @@ describe("solciv", () => {
       playerAccount: playerKey,
       player: provider.publicKey,
     };
-    const unitId = 0;
-    const x = 1;
-    const y = 1;
+    
+    // get player account and find unit of type "settler"
+    const prevState = await program.account.player.fetch(playerKey);
+    const unit = prevState.units.find((unit) => Object.keys(unit.unitType)[0] === "settler");
+    const unitId = unit.unitId;
+    const x = unit.x;
+    const y = unit.y - 1;
     await program.methods.moveUnit(unitId, x, y).accounts(accounts).rpc();
     const account = await program.account.player.fetch(playerKey);
     expect(account.units[unitId].x).equal(x);
@@ -128,19 +166,23 @@ describe("solciv", () => {
       playerAccount: playerKey,
       player: provider.publicKey,
     };
+    const prevState = await program.account.player.fetch(playerKey);
+    const unit = prevState.units.find((unit) => Object.keys(unit.unitType)[0] === "warrior");
+    const unitId = unit.unitId;
     // Cannot move out of 20x20 map bounds
     try {
-      await program.methods.moveUnit(0, 1, 100).accounts(accounts).rpc();
+      await program.methods.moveUnit(unitId, unit.x, unit.y + 100).accounts(accounts).rpc();
     } catch (e) {
       const { message } = e;
       expect(message).include("OutOfMapBounds");
     }
     // Cannot move farther than moving_range
     try {
-      await program.methods.moveUnit(0, 1, 10).accounts(accounts).rpc();
+      const y = unit.y + 3 <= 19 ? unit.y + 3 : unit.y - 3;
+      await program.methods.moveUnit(unitId, unit.x, y).accounts(accounts).rpc();
     } catch (e) {
       const { message } = e;
-      expect(message).include("CannotMove");
+      expect(message).include("OutOfMovementRange");
     }
   });
 
@@ -169,7 +211,6 @@ describe("solciv", () => {
     expect(city.y).equal(unit.y);
     expect(city.cityId).equal(0);
     expect(city.name).equal(name);
-    console.log(city.controlledTiles);
   });
 
   it("Should add building to production queue", async () => {
@@ -304,11 +345,11 @@ describe("solciv", () => {
       player: provider.publicKey,
       playerAccount: playerKey,
     };
-    const x = 3;
-    const y = 2;
-    const unit_id = 2; // warrior created in initializePlayer
+    const prevState = await program.account.player.fetch(playerKey);
+    const unit = prevState.units.find((unit) => Object.keys(unit.unitType)[0] === "warrior");
+    const unitId = unit.unitId;
     try {
-      const tx = await program.methods.upgradeTile(x, y, unit_id).accounts(accounts).rpc();
+      const tx = await program.methods.upgradeTile(unit.x, unit.y, unitId).accounts(accounts).rpc();
     } catch (e) {
       const { message } = e;
       expect(message).include("InvalidUnitType");
@@ -321,11 +362,11 @@ describe("solciv", () => {
       player: provider.publicKey,
       playerAccount: playerKey,
     };
-    const x = 3;
-    const y = 3;
-    const unit_id = 1; // warrior created in initializePlayer
+    const prevState = await program.account.player.fetch(playerKey);
+    const unit = prevState.units.find((unit) => Object.keys(unit.unitType)[0] === "builder");
+    const unitId = unit.unitId;
     try {
-      const tx = await program.methods.upgradeTile(x, y, unit_id).accounts(accounts).rpc();
+      const tx = await program.methods.upgradeTile(unit.x + 1, unit.y, unitId).accounts(accounts).rpc();
     } catch (e) {
       const { message } = e;
       expect(message).include("UnitWrongPosition");
@@ -338,13 +379,13 @@ describe("solciv", () => {
       player: provider.publicKey,
       playerAccount: playerKey,
     };
-    const x = 3;
-    const y = 2;
-    const unit_id = 1; // builder created in initializePlayer
-    const tx = await program.methods.upgradeTile(x, y, unit_id).accounts(accounts).rpc();
+    const prevState = await program.account.player.fetch(playerKey);
+    const unit = prevState.units.find((unit) => Object.keys(unit.unitType)[0] === "builder");
+    const unitId = unit.unitId;
+    const tx = await program.methods.upgradeTile(unit.x, unit.y, unitId).accounts(accounts).rpc();
 
     const account = await program.account.player.fetch(playerKey);
-    expect(account.tiles).deep.equal([{ tileType: { farm: {} }, x, y }]);
+    expect(account.tiles).deep.equal([{ tileType: { farm: {} }, x: unit.x, y: unit.y }]);
   });
 
   it("Should not upgrade land tile with a Builder that was already consumed", async () => {
