@@ -2,6 +2,7 @@ use crate::errors::*;
 use crate::state::{City, Resources, TechnologyType, Tile, Unit};
 use anchor_lang::prelude::*;
 
+
 #[account]
 pub struct Game {
     pub player: Pubkey,
@@ -10,6 +11,7 @@ pub struct Game {
     pub defeat: bool,
     pub victory: bool,
     pub map: [Terrain; 400],
+    pub difficulty_level: u8,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]

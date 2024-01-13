@@ -4,11 +4,12 @@ use anchor_lang::prelude::*;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 
-pub fn initialize_game(ctx: Context<InitializeGame>, map: [u8; 400]) -> Result<()> {
+pub fn initialize_game(ctx: Context<InitializeGame>, map: [u8; 400], difficulty_level: u8) -> Result<()> {
     ctx.accounts.game.player = ctx.accounts.player.key();
     ctx.accounts.game.turn = 1;
     ctx.accounts.game.defeat = false;
     ctx.accounts.game.victory = false;
+    ctx.accounts.game.difficulty_level = difficulty_level;
 
     // Set the tiles from 0 to 7 as discovered and initialize all tiles with a terrain type
     for i in 0..20 {
@@ -404,8 +405,10 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
     ctx.accounts.npc_account.units.retain(|u| u.is_alive);
     ctx.accounts.npc_account.cities.retain(|c| c.health > 0);
 
+    let spawn_interval = SPAWN_INTERVAL[ctx.accounts.game.difficulty_level as usize];
+
     // spawn new NPC units every 20 turns
-    if ctx.accounts.game.turn % 20 == 0 {
+    if ctx.accounts.game.turn % spawn_interval as u32 == 0 {
         let clock = Clock::get()?;
         let random_factor = clock.unix_timestamp % 10;
 
