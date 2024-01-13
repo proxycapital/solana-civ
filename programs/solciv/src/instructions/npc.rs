@@ -2,7 +2,11 @@ use crate::consts::*;
 use crate::state::*;
 use anchor_lang::prelude::*;
 
-pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
+pub fn initialize_npc(
+    ctx: Context<InitializeNpc>,
+    npc_position_1: TileCoordinate,
+    npc_position_2: TileCoordinate,
+) -> Result<()> {
     ctx.accounts.npc_account.game = ctx.accounts.game.key();
     ctx.accounts.npc_account.player = ctx.accounts.player.key();
     ctx.accounts.npc_account.next_city_id = 0;
@@ -13,8 +17,8 @@ pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
         city_id: 0,
         player: ctx.accounts.npc_account.player,
         game: ctx.accounts.game.key(),
-        x: 2,
-        y: 17,
+        x: npc_position_1.x,
+        y: npc_position_1.y,
         name: "Barbarian Village".to_string(),
         health: 1000,
         controlled_tiles: vec![TileCoordinate { x: 2, y: 17 }],
@@ -23,8 +27,8 @@ pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
         city_id: 0,
         player: ctx.accounts.npc_account.player,
         game: ctx.accounts.game.key(),
-        x: 17,
-        y: 17,
+        x: npc_position_2.x,
+        y: npc_position_2.y,
         name: "Barbarian Village".to_string(),
         health: 1000,
         controlled_tiles: vec![TileCoordinate { x: 17, y: 17 }],
@@ -37,8 +41,8 @@ pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
         ctx.accounts.npc_account.key(),
         ctx.accounts.game.key(),
         UnitType::Warrior,
-        16,
-        17,
+        npc_position_1.x + 1,
+        npc_position_1.y,
     )];
     ctx.accounts.npc_account.next_unit_id = 1;
     ctx.accounts.npc_account.next_city_id = 2;

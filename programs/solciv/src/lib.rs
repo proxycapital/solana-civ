@@ -7,7 +7,7 @@ mod state;
 mod utils;
 
 use crate::instructions::*;
-use crate::state::{ProductionItem, TechnologyType};
+use crate::state::{ProductionItem, TechnologyType, TileCoordinate};
 use anchor_lang::prelude::*;
 
 declare_id!("3qoyRXbpBJDPfQYL5GUFJ2nf2YzpA8kZmXPYr4DZBmPU");
@@ -20,12 +20,19 @@ pub mod solciv {
         instructions::initialize_game(ctx, map)
     }
 
-    pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
-        instructions::initialize_player(ctx)
+    pub fn initialize_player(
+        ctx: Context<InitializePlayer>,
+        position: TileCoordinate,
+    ) -> Result<()> {
+        instructions::initialize_player(ctx, position)
     }
 
-    pub fn initialize_npc(ctx: Context<InitializeNpc>) -> Result<()> {
-        instructions::initialize_npc(ctx)
+    pub fn initialize_npc(
+        ctx: Context<InitializeNpc>,
+        npc_position_1: TileCoordinate,
+        npc_position_2: TileCoordinate,
+    ) -> Result<()> {
+        instructions::initialize_npc(ctx, npc_position_1, npc_position_2)
     }
 
     pub fn move_unit(ctx: Context<MoveUnit>, unit_id: u32, x: u8, y: u8) -> Result<()> {
