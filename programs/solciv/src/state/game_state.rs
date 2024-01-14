@@ -2,7 +2,6 @@ use crate::errors::*;
 use crate::state::{City, Resources, TechnologyType, Tile, Unit};
 use anchor_lang::prelude::*;
 
-
 #[account]
 pub struct Game {
     pub player: Pubkey,

@@ -4,7 +4,11 @@ use anchor_lang::prelude::*;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 
-pub fn initialize_game(ctx: Context<InitializeGame>, map: [u8; 400], difficulty_level: u8) -> Result<()> {
+pub fn initialize_game(
+    ctx: Context<InitializeGame>,
+    map: [u8; 400],
+    difficulty_level: u8,
+) -> Result<()> {
     ctx.accounts.game.player = ctx.accounts.player.key();
     ctx.accounts.game.turn = 1;
     ctx.accounts.game.defeat = false;
@@ -158,7 +162,11 @@ fn process_production_queues(player_account: &mut Player, game_key: Pubkey) -> R
     Ok(())
 }
 
-fn process_npc_movements_and_attacks(npc_units: &mut Vec<Unit>, player: &mut Player) -> Result<()> {
+fn process_npc_movements_and_attacks(
+    npc_units: &mut Vec<Unit>,
+    player: &mut Player,
+    difficulty_level: u8,
+) -> Result<()> {
     let npc_units_count = npc_units.len();
     for i in 0..npc_units_count {
         if !npc_units[i].is_alive {
@@ -231,7 +239,7 @@ fn process_npc_movements_and_attacks(npc_units: &mut Vec<Unit>, player: &mut Pla
                         player.resources.gems = player
                             .resources
                             .gems
-                            .checked_add(GEMS_PER_KILL as u32)
+                            .checked_add(GEMS_PER_KILL[difficulty_level as usize] as u32)
                             .unwrap_or(u32::MAX);
                     }
                 } else if let Some(player_unit) = player
@@ -244,7 +252,7 @@ fn process_npc_movements_and_attacks(npc_units: &mut Vec<Unit>, player: &mut Pla
                         player.resources.gems = player
                             .resources
                             .gems
-                            .checked_add(GEMS_PER_KILL as u32)
+                            .checked_add(GEMS_PER_KILL[difficulty_level as usize] as u32)
                             .unwrap_or(u32::MAX);
                     }
                 } else if let Some(player_city) = player
@@ -257,7 +265,7 @@ fn process_npc_movements_and_attacks(npc_units: &mut Vec<Unit>, player: &mut Pla
                         player.resources.gems = player
                             .resources
                             .gems
-                            .checked_add(GEMS_PER_KILL as u32)
+                            .checked_add(GEMS_PER_KILL[difficulty_level as usize] as u32)
                             .unwrap_or(u32::MAX);
                     }
                 }
@@ -329,7 +337,11 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
 
     let player_account = &mut ctx.accounts.player_account;
 
-    process_npc_movements_and_attacks(&mut ctx.accounts.npc_account.units, player_account)?;
+    process_npc_movements_and_attacks(
+        &mut ctx.accounts.npc_account.units,
+        player_account,
+        ctx.accounts.game.difficulty_level,
+    )?;
 
     for i in 0..player_account.cities.len() {
         let all_controlled_tiles: Vec<TileCoordinate> = player_account

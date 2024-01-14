@@ -349,7 +349,7 @@ pub fn attack_unit(ctx: Context<AttackUnit>, attacker_id: u32, defender_id: u32)
             .player_account
             .resources
             .gems
-            .checked_add(GEMS_PER_KILL as u32)
+            .checked_add(GEMS_PER_KILL[ctx.accounts.game.difficulty_level as usize] as u32)
             .unwrap_or(u32::MAX);
     }
 
@@ -401,7 +401,9 @@ pub fn attack_city(ctx: Context<AttackCity>, attacker_id: u32, city_id: u32) -> 
             .player_account
             .resources
             .gems
-            .checked_add(GEMS_PER_CITY_DESTROYED as u32)
+            .checked_add(
+                GEMS_PER_CITY_DESTROYED[ctx.accounts.game.difficulty_level as usize] as u32,
+            )
             .unwrap_or(u32::MAX);
     }
 
