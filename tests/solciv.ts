@@ -69,7 +69,7 @@ describe("solciv", () => {
       player: provider.publicKey,
       systemProgram: anchor.web3.SystemProgram.programId,
     };
-    const tx = await program.methods.initializeGame(randomMap).accounts(accounts).rpc();
+    const tx = await program.methods.initializeGame(randomMap, 1).accounts(accounts).rpc();
     const account = await program.account.game.fetch(gameKey);
 
     expect(account.player.toBase58()).equal(provider.publicKey.toBase58());

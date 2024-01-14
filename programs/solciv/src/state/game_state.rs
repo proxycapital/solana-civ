@@ -10,6 +10,7 @@ pub struct Game {
     pub defeat: bool,
     pub victory: bool,
     pub map: [Terrain; 400],
+    pub difficulty_level: u8,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]

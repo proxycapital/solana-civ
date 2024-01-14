@@ -16,8 +16,12 @@ declare_id!("3qoyRXbpBJDPfQYL5GUFJ2nf2YzpA8kZmXPYr4DZBmPU");
 pub mod solciv {
     use super::*;
 
-    pub fn initialize_game(ctx: Context<InitializeGame>, map: [u8; 400]) -> Result<()> {
-        instructions::initialize_game(ctx, map)
+    pub fn initialize_game(
+        ctx: Context<InitializeGame>,
+        map: [u8; 400],
+        difficulty_level: u8,
+    ) -> Result<()> {
+        instructions::initialize_game(ctx, map, difficulty_level)
     }
 
     pub fn initialize_player(
