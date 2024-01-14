@@ -415,7 +415,14 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
 
     let spawn_interval = SPAWN_INTERVAL[ctx.accounts.game.difficulty_level as usize];
 
-    // spawn new NPC units every 20 turns
+    // Determine the epoch based on the game turn and difficulty level
+    let epoch = match ctx.accounts.game.difficulty_level {
+        0 => ctx.accounts.game.turn / 100, // Easy: NPCs evolve every 100 turns
+        1 => ctx.accounts.game.turn / 80,  // Medium: NPCs evolve every 80 turns
+        2 => ctx.accounts.game.turn / 60,  // Hard: NPCs evolve every 60 turns
+        _ => ctx.accounts.game.turn / 80,  // Default to Medium
+    };
+
     if ctx.accounts.game.turn % spawn_interval as u32 == 0 {
         let clock = Clock::get()?;
         let random_factor = clock.unix_timestamp % 10;
@@ -425,20 +432,35 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
         let mut next_npc_id = ctx.accounts.npc_account.next_unit_id;
 
         for city in &ctx.accounts.npc_account.cities {
-            let unit_type = if ctx.accounts.game.turn >= 100 {
-                // Turn >= 100: 0-4 Swordsman, 5-9 Horseman
-                if random_factor < 5 {
-                    UnitType::Swordsman
-                } else {
-                    UnitType::Horseman
+            let unit_type = match epoch {
+                0 => {
+                    if random_factor < 5 {
+                        UnitType::Warrior
+                    } else {
+                        UnitType::Archer
+                    }
                 }
-            } else {
-                // Turn < 100: 0-4 Warrior, 5-9 Archer
-                if random_factor < 5 {
-                    UnitType::Warrior
-                } else {
-                    UnitType::Archer
+                1 => {
+                    if random_factor < 5 {
+                        UnitType::Swordsman
+                    } else {
+                        UnitType::Horseman
+                    }
                 }
+                2 => {
+                    if random_factor < 5 {
+                        UnitType::Crossbowman
+                    } else {
+                        UnitType::Musketman
+                    }
+                }
+                _ => {
+                    if random_factor < 5 {
+                        UnitType::Rifleman
+                    } else {
+                        UnitType::Tank
+                    }
+                } // Default to latest epoch
             };
 
             let new_unit = Unit::new(

@@ -21,17 +21,23 @@ pub fn initialize_npc(
         y: npc_position_1.y,
         name: "Barbarian Village".to_string(),
         health: 1000,
-        controlled_tiles: vec![TileCoordinate { x: 2, y: 17 }],
+        controlled_tiles: vec![TileCoordinate {
+            x: npc_position_1.x,
+            y: npc_position_1.y,
+        }],
     };
     let npc_two = NewCityParams {
-        city_id: 0,
+        city_id: 1,
         player: ctx.accounts.npc_account.player,
         game: ctx.accounts.game.key(),
         x: npc_position_2.x,
         y: npc_position_2.y,
         name: "Barbarian Village".to_string(),
         health: 1000,
-        controlled_tiles: vec![TileCoordinate { x: 17, y: 17 }],
+        controlled_tiles: vec![TileCoordinate {
+            x: npc_position_2.x,
+            y: npc_position_2.y,
+        }],
     };
     ctx.accounts.npc_account.cities = vec![City::new(npc_one), City::new(npc_two)];
 
