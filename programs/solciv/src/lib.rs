@@ -100,6 +100,15 @@ pub mod solciv {
         instructions::attack_city(ctx, attacker_id, city_id)
     }
 
+    pub fn create_gems(
+        ctx: Context<CreateGems>,
+        token_name: String,
+        token_symbol: String,
+        token_uri: String,
+    ) -> Result<()> {
+        instructions::create_gems(ctx, token_name, token_symbol, token_uri)
+    }
+
     pub fn mint_gems(ctx: Context<MintGems>) -> Result<()> {
         instructions::mint_gems(ctx)
     }
