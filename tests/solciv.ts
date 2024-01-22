@@ -2,6 +2,9 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Solciv } from "../target/types/solciv";
 import { expect } from "chai";
+import { PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
+import { SYSVAR_RENT_PUBKEY, SystemProgram } from "@solana/web3.js";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 describe("solciv", () => {
   const provider = anchor.AnchorProvider.env();
@@ -147,7 +150,7 @@ describe("solciv", () => {
       playerAccount: playerKey,
       player: provider.publicKey,
     };
-    
+
     // get player account and find unit of type "settler"
     const prevState = await program.account.player.fetch(playerKey);
     const unit = prevState.units.find((unit) => Object.keys(unit.unitType)[0] === "settler");
@@ -171,7 +174,10 @@ describe("solciv", () => {
     const unitId = unit.unitId;
     // Cannot move out of 20x20 map bounds
     try {
-      await program.methods.moveUnit(unitId, unit.x, unit.y + 100).accounts(accounts).rpc();
+      await program.methods
+        .moveUnit(unitId, unit.x, unit.y + 100)
+        .accounts(accounts)
+        .rpc();
     } catch (e) {
       const { message } = e;
       expect(message).include("OutOfMapBounds");
@@ -366,7 +372,10 @@ describe("solciv", () => {
     const unit = prevState.units.find((unit) => Object.keys(unit.unitType)[0] === "builder");
     const unitId = unit.unitId;
     try {
-      const tx = await program.methods.upgradeTile(unit.x + 1, unit.y, unitId).accounts(accounts).rpc();
+      const tx = await program.methods
+        .upgradeTile(unit.x + 1, unit.y, unitId)
+        .accounts(accounts)
+        .rpc();
     } catch (e) {
       const { message } = e;
       expect(message).include("UnitWrongPosition");
@@ -501,8 +510,36 @@ describe("solciv", () => {
     expect(npcAccount.units.length).greaterThanOrEqual(2);
   });
 
+  it("Create gems token", async () => {
+    const MINT_SEED = "mint";
+    const [mint] = anchor.web3.PublicKey.findProgramAddressSync([Buffer.from(MINT_SEED)], program.programId);
+    // Derive the metadata account address.
+    const [metadataAddress] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("metadata"), TOKEN_METADATA_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+      TOKEN_METADATA_PROGRAM_ID
+    );
+
+    const metadata = {
+      name: "CIV",
+      symbol: "CIV",
+      uri: "https://raw.githubusercontent.com/proxycapital/solana-civ-frontend/main/public/gems_metadata.json",
+    };
+
+    const transactionSignature = await program.methods
+      .createGems(metadata.name, metadata.symbol, metadata.uri)
+      .accounts({
+        payer: provider.publicKey,
+        mintAccount: mint,
+        metadataAccount: metadataAddress,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .rpc();
+  });
+
   it("Should mint gems", async () => {
-    return;
     const MINT_SEED = "mint";
     const [mint] = anchor.web3.PublicKey.findProgramAddressSync([Buffer.from(MINT_SEED)], program.programId);
     const destination = await anchor.utils.token.associatedAddress({
