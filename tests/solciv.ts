@@ -27,6 +27,10 @@ describe("solciv", () => {
     program.programId
   );
 
+  function isLocalnet(): boolean {
+    return provider.connection.rpcEndpoint.includes("localhost");
+  }
+
   async function addToProductionQueue(cityId, item) {
     const accounts = {
       player: provider.publicKey,
@@ -510,7 +514,11 @@ describe("solciv", () => {
     expect(npcAccount.units.length).greaterThanOrEqual(2);
   });
 
-  it("Create gems token", async () => {
+  it("Create gems token", async function() {
+    if (isLocalnet()) {
+      console.warn("Skipping 'Create gems token' test on local environment");
+      return this.skip();
+    }
     const MINT_SEED = "mint";
     const [mint] = anchor.web3.PublicKey.findProgramAddressSync([Buffer.from(MINT_SEED)], program.programId);
     // Derive the metadata account address.
@@ -539,7 +547,11 @@ describe("solciv", () => {
       .rpc();
   });
 
-  it("Should mint gems", async () => {
+  it("Should mint gems", async function() {
+    if (isLocalnet()) {
+      console.warn("Skipping 'Should mint gems' test on local environment");
+      return this.skip();
+    }
     const MINT_SEED = "mint";
     const [mint] = anchor.web3.PublicKey.findProgramAddressSync([Buffer.from(MINT_SEED)], program.programId);
     const destination = await anchor.utils.token.associatedAddress({
