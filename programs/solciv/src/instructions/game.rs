@@ -343,6 +343,12 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
         ctx.accounts.game.difficulty_level,
     )?;
 
+    // Retain only alive units in the game
+    player_account.units.retain(|u| u.is_alive);
+    player_account.cities.retain(|c| c.health > 0);
+    ctx.accounts.npc_account.units.retain(|u| u.is_alive);
+    ctx.accounts.npc_account.cities.retain(|c| c.health > 0);
+
     for i in 0..player_account.cities.len() {
         let all_controlled_tiles: Vec<TileCoordinate> = player_account
             .cities
@@ -406,12 +412,6 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
 
     // Check research progress
     ctx.accounts.player_account.add_research_points(science)?;
-
-    // Retain only alive units in the game
-    ctx.accounts.player_account.units.retain(|u| u.is_alive);
-    ctx.accounts.player_account.cities.retain(|c| c.health > 0);
-    ctx.accounts.npc_account.units.retain(|u| u.is_alive);
-    ctx.accounts.npc_account.cities.retain(|c| c.health > 0);
 
     let spawn_interval = SPAWN_INTERVAL[ctx.accounts.game.difficulty_level as usize];
 

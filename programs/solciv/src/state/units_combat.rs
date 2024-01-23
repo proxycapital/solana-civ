@@ -259,7 +259,7 @@ impl Unit {
             }
         } else {
             msg!("Given damage to the city: {}", given_damage);
-            msg!("Taken damage from the city: {}", given_damage);
+            msg!("Taken damage from the city: {}", taken_damage);
 
             // handle damage for city health
             if u32::from(given_damage) >= city.health {
