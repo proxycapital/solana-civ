@@ -206,13 +206,33 @@ impl Unit {
         let given_damage = (given_damage_raw.max(0.0).min(255.0)) as u8;
         let taken_damage = (taken_damage_raw.max(0.0).min(255.0)) as u8;
 
-        // Apply damage to defender and update attacker's experience
+        // Apply damage to defender
         defender.apply_damage(given_damage);
-        self.update_experience(!defender.is_alive);
 
-        // Apply damage to self (attacker) and update defender's experience
+        // Apply damage to self (attacker)
         self.apply_damage(taken_damage);
-        defender.update_experience(!self.is_alive);
+
+        // Check if both units are supposed to die
+        if !self.is_alive && !defender.is_alive {
+            if given_damage >= taken_damage {
+                // Attacker dealt more damage, so it survives with 1 HP
+                // Attacker wins also in case of a tie
+                self.is_alive = true;
+                self.health = 1;
+                // Update experience considering attacker won
+                self.update_experience(true);
+            } else {
+                // Defender dealt more damage, so it survives with 1 HP
+                defender.is_alive = true;
+                defender.health = 1;
+                // Update experience considering defender won
+                defender.update_experience(true);
+            }
+        } else {
+            // If not both are dead, update experiences normally
+            self.update_experience(!defender.is_alive);
+            defender.update_experience(!self.is_alive);
+        }
 
         // After the attack unit cannot move or attack anymore
         self.movement_range = 0;
