@@ -43,6 +43,9 @@ pub enum UnitError {
 
     #[msg("Not enought experience to level up unit")]
     NotEnoughExp,
+
+    #[msg("Cannot build a city on this tile")]
+    WithinConrolledTerritory,
 }
 
 #[error_code]
