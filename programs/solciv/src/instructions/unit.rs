@@ -162,6 +162,9 @@ pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: Str
     if (unit.x, unit.y) != (x, y) {
         return err!(UnitError::UnitWrongPosition);
     }
+    if unit.movement_range == 0 {
+        return err!(UnitError::NoMovementPoints);
+    }
 
     // Check if the tile is not neutral
     let is_controlled = ctx
@@ -230,6 +233,9 @@ pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Re
     }
     if (unit.x, unit.y) != (x, y) {
         return err!(UnitError::UnitWrongPosition);
+    }
+    if unit.movement_range == 0 {
+        return err!(UnitError::NoMovementPoints);
     }
 
     // Check if the tile type is upgradeable and the tile is not occupied by a City or another Tile.
