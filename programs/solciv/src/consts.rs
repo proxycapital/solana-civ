@@ -11,3 +11,6 @@ pub const GEMS_PER_CITY_DESTROYED: [u8; 3] = [25, 50, 100];
 pub const EXP_THRESHOLDS: [u8; 3] = [10, 30, 45];
 pub const EXP_PER_ATTACK: u8 = 3;
 pub const SPAWN_INTERVAL: [u8; 3] = [20, 15, 10];
+
+// default storage capacity per strategic resource
+pub const STORAGE_CAPACITY: u8 = 50;

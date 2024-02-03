@@ -1,3 +1,4 @@
+use crate::consts::STORAGE_CAPACITY;
 use crate::errors::*;
 use crate::state::{City, Resources, TechnologyType, Tile, Unit};
 use anchor_lang::prelude::*;
@@ -61,14 +62,16 @@ impl Player {
                 i32::MIN
             }
         });
-        self.resources.wood = self.resources.wood.checked_add(wood).unwrap_or(u32::MAX);
-        self.resources.stone = self.resources.stone.checked_add(stone).unwrap_or(u32::MAX);
-        self.resources.iron = self.resources.iron.checked_add(iron).unwrap_or(u32::MAX);
-        self.resources.horses = self
-            .resources
-            .horses
-            .checked_add(horses)
-            .unwrap_or(u32::MAX);
+
+        let add_resource = |current: u32, addition: u32| -> u32 {
+            std::cmp::min(current.saturating_add(addition), STORAGE_CAPACITY.into())
+        };
+
+        self.resources.wood = add_resource(self.resources.wood, wood);
+        self.resources.stone = add_resource(self.resources.stone, stone);
+        self.resources.iron = add_resource(self.resources.iron, iron);
+        self.resources.horses = add_resource(self.resources.horses, horses);
+
         Ok(())
     }
 
