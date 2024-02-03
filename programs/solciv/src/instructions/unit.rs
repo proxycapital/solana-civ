@@ -162,22 +162,20 @@ pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: Str
     if (unit.x, unit.y) != (x, y) {
         return err!(UnitError::UnitWrongPosition);
     }
+    if unit.movement_range == 0 {
+        return err!(UnitError::NoMovementPoints);
+    }
 
-    // Check if there is already a city at `x` and `y`.
-    let is_occupied = ctx
+    // Check if the tile is not neutral
+    let is_controlled = ctx
         .accounts
         .player_account
         .cities
         .iter()
-        .any(|city| city.x == x && city.y == y)
-        || ctx
-            .accounts
-            .player_account
-            .tiles
-            .iter()
-            .any(|tile| tile.x == x && tile.y == y);
-    if is_occupied {
-        return err!(BuildingError::TileOccupied);
+        .any(|city| city.controls_tile(x, y));
+
+    if is_controlled {
+        return err!(UnitError::WithinControlledTerritory);
     }
 
     let controlled_tiles = calculate_controlled_tiles(x, y, &ctx.accounts.player_account.cities);
@@ -235,6 +233,9 @@ pub fn upgrade_tile(ctx: Context<UpgradeTile>, x: u8, y: u8, unit_id: u32) -> Re
     }
     if (unit.x, unit.y) != (x, y) {
         return err!(UnitError::UnitWrongPosition);
+    }
+    if unit.movement_range == 0 {
+        return err!(UnitError::NoMovementPoints);
     }
 
     // Check if the tile type is upgradeable and the tile is not occupied by a City or another Tile.
