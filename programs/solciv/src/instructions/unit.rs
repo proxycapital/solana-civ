@@ -172,7 +172,7 @@ pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: Str
         .any(|city| city.controls_tile(x, y));
 
     if is_controlled {
-        return err!(UnitError::WithinConrolledTerritory);
+        return err!(UnitError::WithinControlledTerritory);
     }
 
     let controlled_tiles = calculate_controlled_tiles(x, y, &ctx.accounts.player_account.cities);

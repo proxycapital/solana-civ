@@ -45,7 +45,7 @@ pub enum UnitError {
     NotEnoughExp,
 
     #[msg("Cannot build a city on this tile")]
-    WithinConrolledTerritory,
+    WithinControlledTerritory,
 }
 
 #[error_code]
