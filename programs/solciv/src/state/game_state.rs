@@ -1,5 +1,6 @@
+use crate::consts::STORAGE_CAPACITY;
 use crate::errors::*;
-use crate::state::{City, Resources, TechnologyType, Tile, Unit};
+use crate::state::{BuildingType, City, Resources, TechnologyType, Tile, Unit};
 use anchor_lang::prelude::*;
 
 #[account]
@@ -46,6 +47,14 @@ pub struct Npc {
 }
 
 impl Player {
+    fn count_barracks_buildings(cities: &[City]) -> u32 {
+        cities
+            .iter()
+            .flat_map(|city| &city.buildings)
+            .filter(|&building| matches!(building, BuildingType::Barracks))
+            .count() as u32
+    }
+
     pub fn update_resources(
         &mut self,
         gold: i32,
@@ -61,14 +70,20 @@ impl Player {
                 i32::MIN
             }
         });
-        self.resources.wood = self.resources.wood.checked_add(wood).unwrap_or(u32::MAX);
-        self.resources.stone = self.resources.stone.checked_add(stone).unwrap_or(u32::MAX);
-        self.resources.iron = self.resources.iron.checked_add(iron).unwrap_or(u32::MAX);
-        self.resources.horses = self
-            .resources
-            .horses
-            .checked_add(horses)
-            .unwrap_or(u32::MAX);
+
+        let barracks_count = Self::count_barracks_buildings(&self.cities);
+        // Each barracks adds +10 to the max storage capacity
+        let max_storage_capacity = STORAGE_CAPACITY as u32 + (barracks_count * 10);
+
+        let add_resource = |current: u32, addition: u32, max_capacity: u32| -> u32 {
+            std::cmp::min(current.saturating_add(addition), max_capacity)
+        };
+
+        self.resources.wood = add_resource(self.resources.wood, wood, max_storage_capacity);
+        self.resources.stone = add_resource(self.resources.stone, stone, max_storage_capacity);
+        self.resources.iron = add_resource(self.resources.iron, iron, max_storage_capacity);
+        self.resources.horses = add_resource(self.resources.horses, horses, max_storage_capacity);
+
         Ok(())
     }
 
