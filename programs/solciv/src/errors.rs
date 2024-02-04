@@ -1,5 +1,4 @@
-use anchor_lang::error_code;
-
+use anchor_lang::error_code
 #[error_code]
 pub enum UnitError {
     #[msg("Unit with given ID not found")]
