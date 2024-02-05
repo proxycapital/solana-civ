@@ -28,6 +28,12 @@ pub fn initialize_game(
     Ok(())
 }
 
+fn reset_npc_movement_range(npc_units: &mut [Unit]) {
+    for unit in npc_units.iter_mut().filter(|u| u.is_alive) {
+        unit.movement_range = Unit::get_base_movement_range(unit.unit_type);
+    }
+}
+
 fn heal_units_and_reset_movement_range(units: &mut [Unit]) {
     for unit in units.iter_mut().filter(|u| u.is_alive) {
         // Heal if the unit did not move/attack and has less than max HP
@@ -214,90 +220,102 @@ fn process_npc_movements_and_attacks(
             }
         }
 
-        // If a closest target was found, make decisions for NPC units based on the proximity to this target
-        if let Some((target_x, target_y)) = closest_target {
-            let dist_x = (npc_units[i].x as i16 - target_x as i16).abs();
-            let dist_y = (npc_units[i].y as i16 - target_y as i16).abs();
-            let dist = std::cmp::max(dist_x, dist_y) as u8;
+        while npc_units[i].movement_range > 0 {
+            // If a closest target was found, make decisions for NPC units based on the proximity to this target
+            if let Some((target_x, target_y)) = closest_target {
+                let dist_x = (npc_units[i].x as i16 - target_x as i16).abs();
+                let dist_y = (npc_units[i].y as i16 - target_y as i16).abs();
+                let dist = std::cmp::max(dist_x, dist_y) as u8;
 
-            if dist == 1 {
-                let is_player_unit = player
-                    .units
-                    .iter_mut()
-                    .any(|u| u.x == target_x && u.y == target_y);
-                let is_city_with_wall = player.cities.iter_mut().any(|c| {
-                    c.x == target_x && c.y == target_y && c.health > 0 && c.wall_health > 0
-                });
-                if is_city_with_wall && is_player_unit {
-                    // attack unit that stay in the city with wall
-                    let player_unit = player
+                if dist == 1 {
+                    let is_player_unit = player
                         .units
                         .iter_mut()
-                        .find(|u| u.x == target_x && u.y == target_y && u.is_alive);
-                    npc_units[i].attack_unit(player_unit.unwrap(), Some(true))?;
-                    if !npc_units[i].is_alive {
-                        player.resources.gems = player
-                            .resources
-                            .gems
-                            .checked_add(GEMS_PER_KILL[difficulty_level as usize] as u32)
-                            .unwrap_or(u32::MAX);
+                        .any(|u| u.x == target_x && u.y == target_y);
+                    let is_city_with_wall = player.cities.iter_mut().any(|c| {
+                        c.x == target_x && c.y == target_y && c.health > 0 && c.wall_health > 0
+                    });
+                    if is_city_with_wall && is_player_unit {
+                        // attack unit that stay in the city with wall
+                        let player_unit = player
+                            .units
+                            .iter_mut()
+                            .find(|u| u.x == target_x && u.y == target_y && u.is_alive);
+                        npc_units[i].attack_unit(player_unit.unwrap(), Some(true))?;
+                        if !npc_units[i].is_alive {
+                            player.resources.gems = player
+                                .resources
+                                .gems
+                                .checked_add(GEMS_PER_KILL[difficulty_level as usize] as u32)
+                                .unwrap_or(u32::MAX);
+                        }
+                    } else if let Some(player_unit) = player
+                        .units
+                        .iter_mut()
+                        .find(|u| u.x == target_x && u.y == target_y && u.is_alive)
+                    {
+                        npc_units[i].attack_unit(player_unit, None)?;
+                        if !npc_units[i].is_alive {
+                            player.resources.gems = player
+                                .resources
+                                .gems
+                                .checked_add(GEMS_PER_KILL[difficulty_level as usize] as u32)
+                                .unwrap_or(u32::MAX);
+                        }
+                    } else if let Some(player_city) = player
+                        .cities
+                        .iter_mut()
+                        .find(|c| c.x == target_x && c.y == target_y && c.health > 0)
+                    {
+                        npc_units[i].attack_city(player_city)?;
+                        if !npc_units[i].is_alive {
+                            player.resources.gems = player
+                                .resources
+                                .gems
+                                .checked_add(GEMS_PER_KILL[difficulty_level as usize] as u32)
+                                .unwrap_or(u32::MAX);
+                        }
                     }
-                } else if let Some(player_unit) = player
-                    .units
-                    .iter_mut()
-                    .find(|u| u.x == target_x && u.y == target_y && u.is_alive)
-                {
-                    npc_units[i].attack_unit(player_unit, None)?;
-                    if !npc_units[i].is_alive {
-                        player.resources.gems = player
-                            .resources
-                            .gems
-                            .checked_add(GEMS_PER_KILL[difficulty_level as usize] as u32)
-                            .unwrap_or(u32::MAX);
+                    // NPC unit cannot move after attacking
+                    npc_units[i].movement_range = 0;
+                    break;
+                } else {
+                    let dir_x = match npc_units[i].x.cmp(&target_x) {
+                        std::cmp::Ordering::Less => 1,
+                        std::cmp::Ordering::Greater => -1,
+                        std::cmp::Ordering::Equal => 0,
+                    };
+                    let dir_y = match npc_units[i].y.cmp(&target_y) {
+                        std::cmp::Ordering::Less => 1,
+                        std::cmp::Ordering::Greater => -1,
+                        std::cmp::Ordering::Equal => 0,
+                    };
+
+                    let new_x = (npc_units[i].x as i16 + dir_x) as u8;
+                    let new_y = (npc_units[i].y as i16 + dir_y) as u8;
+
+                    if new_x < MAP_BOUND
+                        && new_y < MAP_BOUND
+                        && !is_occupied(new_x, new_y, &player.units, npc_units, &player.cities)
+                    {
+                        npc_units[i].x = new_x;
+                        npc_units[i].y = new_y;
+                    } else {
+                        msg!(
+                            "NPC unit #{} cannot move to position ({}, {})",
+                            npc_units[i].unit_id,
+                            new_x,
+                            new_y
+                        );
                     }
-                } else if let Some(player_city) = player
-                    .cities
-                    .iter_mut()
-                    .find(|c| c.x == target_x && c.y == target_y && c.health > 0)
-                {
-                    npc_units[i].attack_city(player_city)?;
-                    if !npc_units[i].is_alive {
-                        player.resources.gems = player
-                            .resources
-                            .gems
-                            .checked_add(GEMS_PER_KILL[difficulty_level as usize] as u32)
-                            .unwrap_or(u32::MAX);
+                    npc_units[i].movement_range -= 1;
+
+                    if npc_units[i].movement_range == 0 {
+                        break;
                     }
                 }
             } else {
-                let dir_x = match npc_units[i].x.cmp(&target_x) {
-                    std::cmp::Ordering::Less => 1,
-                    std::cmp::Ordering::Greater => -1,
-                    std::cmp::Ordering::Equal => 0,
-                };
-                let dir_y = match npc_units[i].y.cmp(&target_y) {
-                    std::cmp::Ordering::Less => 1,
-                    std::cmp::Ordering::Greater => -1,
-                    std::cmp::Ordering::Equal => 0,
-                };
-
-                let new_x = (npc_units[i].x as i16 + dir_x) as u8;
-                let new_y = (npc_units[i].y as i16 + dir_y) as u8;
-
-                if new_x < MAP_BOUND
-                    && new_y < MAP_BOUND
-                    && !is_occupied(new_x, new_y, &player.units, npc_units, &player.cities)
-                {
-                    npc_units[i].x = new_x;
-                    npc_units[i].y = new_y;
-                } else {
-                    msg!(
-                        "NPC unit #{} cannot move to position ({}, {})",
-                        npc_units[i].unit_id,
-                        new_x,
-                        new_y
-                    );
-                }
+                break;
             }
         }
     }
@@ -486,6 +504,8 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
     {
         ctx.accounts.game.victory = true;
     }
+
+    reset_npc_movement_range(&mut ctx.accounts.npc_account.units);
 
     ctx.accounts.game.turn += 1;
     Ok(())
