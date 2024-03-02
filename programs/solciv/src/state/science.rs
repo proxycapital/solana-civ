@@ -22,6 +22,9 @@ pub enum TechnologyType {
     ElectricalPower,
     ModernFarming,
     Urbanization,
+    MaritimeNavigation,
+    AdvancedShipbuilding,
+    OceanicTrade
 }
 
 impl TechnologyType {
@@ -47,6 +50,9 @@ impl TechnologyType {
             TechnologyType::ElectricalPower => 16,
             TechnologyType::ModernFarming => 20,
             TechnologyType::Urbanization => 30,
+            TechnologyType::MaritimeNavigation => 12,
+            TechnologyType::AdvancedShipbuilding => 20,
+            TechnologyType::OceanicTrade => 30,
         }
     }
 }
