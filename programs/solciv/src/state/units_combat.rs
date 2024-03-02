@@ -24,6 +24,7 @@ pub struct Unit {
     pub maintenance_cost: i32,
     pub is_ranged: bool,
     pub is_alive: bool,
+    pub is_naval: bool,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone, PartialEq)]
@@ -38,6 +39,9 @@ pub enum UnitType {
     Rifleman,
     Tank,
     Horseman,
+    Galley,
+    Frigate,
+    Battleship,
 }
 
 impl Unit {
@@ -51,6 +55,7 @@ impl Unit {
     ) -> Self {
         let (
             is_ranged,
+            is_naval,
             health,
             attack,
             movement_range,
@@ -82,6 +87,7 @@ impl Unit {
             maintenance_cost,
             is_ranged,
             is_alive: true,
+            is_naval,
         }
     }
 
@@ -94,46 +100,49 @@ impl Unit {
     /// ### Returns
     ///
     /// A tuple containing values representing the base stats of the unit in the following order:
-    /// `(is_ranged, health, attack, movement_range, remaining_actions, base_production_cost, base_gold_cost, base_resource_cost, maintenance_cost, experience, level)`.
+    /// `(is_ranged, is_naval, health, attack, movement_range, remaining_actions, base_production_cost, base_gold_cost, base_resource_cost, maintenance_cost, experience, level)`.
     pub fn get_base_stats(
         unit_type: UnitType,
-    ) -> (bool, u8, u8, u8, u8, u32, u32, u32, i32, u8, u8) {
+    ) -> (bool, bool, u8, u8, u8, u8, u32, u32, u32, i32, u8, u8) {
         match unit_type {
-            UnitType::Settler => (false, 100, 0, 2, 1, 20, 100, 60, 0, 0, 0),
-            UnitType::Builder => (false, 100, 0, 2, 1, 20, 100, 0, 0, 0, 0),
-            UnitType::Warrior => (false, 100, 8, 2, 0, 20, 200, 0, 0, 0, 0),
-            UnitType::Archer => (true, 100, 10, 2, 0, 20, 200, 0, 1, 0, 0),
-            UnitType::Swordsman => (false, 100, 14, 2, 0, 30, 240, 10, 1, 0, 0),
-            UnitType::Horseman => (false, 100, 14, 3, 0, 30, 280, 10, 2, 0, 0),
-            UnitType::Crossbowman => (true, 100, 24, 2, 0, 40, 240, 0, 2, 0, 0),
-            UnitType::Musketman => (true, 100, 32, 2, 0, 50, 360, 0, 2, 0, 0),
-            UnitType::Rifleman => (true, 100, 40, 3, 0, 60, 420, 0, 4, 0, 0),
-            UnitType::Tank => (true, 100, 50, 4, 0, 80, 500, 0, 7, 0, 0),
+            UnitType::Settler => (false, false, 100, 0, 2, 1, 20, 100, 60, 0, 0, 0),
+            UnitType::Builder => (false, false, 100, 0, 2, 1, 20, 100, 0, 0, 0, 0),
+            UnitType::Warrior => (false, false, 100, 8, 2, 0, 20, 200, 0, 0, 0, 0),
+            UnitType::Archer => (true, false, 100, 10, 2, 0, 20, 200, 0, 1, 0, 0),
+            UnitType::Swordsman => (false, false, 100, 14, 2, 0, 30, 240, 10, 1, 0, 0),
+            UnitType::Horseman => (false, false, 100, 14, 3, 0, 30, 280, 10, 2, 0, 0),
+            UnitType::Crossbowman => (true, false, 100, 24, 2, 0, 40, 240, 0, 2, 0, 0),
+            UnitType::Musketman => (true, false, 100, 32, 2, 0, 50, 360, 0, 2, 0, 0),
+            UnitType::Rifleman => (true, false, 100, 40, 3, 0, 60, 420, 0, 4, 0, 0),
+            UnitType::Tank => (true, false, 100, 50, 4, 0, 80, 500, 0, 7, 0, 0),
+            UnitType::Galley => (false, true, 100, 10, 3, 0, 25, 150, 0, 0, 0, 0),
+            UnitType::Frigate => (false, true, 100, 14, 4, 0, 40, 280, 0, 1, 0, 0),
+            UnitType::Battleship => (true,  true, 100, 24, 5, 0, 80, 420, 0, 3, 0, 0),
         }
     }
 
     pub fn get_base_cost(unit_type: UnitType) -> u32 {
-        Unit::get_base_stats(unit_type).5
-    }
-
-    pub fn get_gold_cost(unit_type: UnitType) -> u32 {
         Unit::get_base_stats(unit_type).6
     }
 
-    pub fn get_resource_cost(unit_type: UnitType) -> u32 {
+    pub fn get_gold_cost(unit_type: UnitType) -> u32 {
         Unit::get_base_stats(unit_type).7
     }
 
-    pub fn get_base_movement_range(unit_type: UnitType) -> u8 {
-        Unit::get_base_stats(unit_type).3
-    }
-
-    pub fn get_maintenance_cost(unit_type: UnitType) -> i32 {
+    pub fn get_resource_cost(unit_type: UnitType) -> u32 {
         Unit::get_base_stats(unit_type).8
     }
 
-    pub fn get_expereince(unit_type: UnitType) -> u8 {
+    pub fn get_base_movement_range(unit_type: UnitType) -> u8 {
+        Unit::get_base_stats(unit_type).4
+    }
+
+    pub fn get_maintenance_cost(unit_type: UnitType) -> i32 {
         Unit::get_base_stats(unit_type).9
+    }
+
+    pub fn get_expereince(unit_type: UnitType) -> u8 {
+        Unit::get_base_stats(unit_type).10
     }
 
     fn can_attack(&self) -> bool {
@@ -322,6 +331,9 @@ impl UnitType {
             UnitType::Musketman => researched_technologies.contains(&TechnologyType::Gunpowder),
             UnitType::Rifleman => researched_technologies.contains(&TechnologyType::Ballistics),
             UnitType::Tank => researched_technologies.contains(&TechnologyType::TanksAndArmor),
+            UnitType::Galley => researched_technologies.contains(&TechnologyType::MaritimeNavigation),
+            UnitType::Frigate => researched_technologies.contains(&TechnologyType::AdvancedShipbuilding),
+            UnitType::Battleship => researched_technologies.contains(&TechnologyType::OceanicTrade),
         }
     }
 }
