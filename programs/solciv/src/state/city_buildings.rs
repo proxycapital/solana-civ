@@ -61,6 +61,10 @@ pub enum BuildingType {
     Bakery,
     Supermarket,
     ResidentialComplex,
+    // naval buildings
+    Lighthouse,
+    Shipyard,
+    SeaPort,
 }
 
 pub struct NewCityParams {
@@ -151,6 +155,18 @@ impl City {
             BuildingType::Bakery => self.food_yield += 3,
             BuildingType::Supermarket => self.food_yield += 4,
             BuildingType::ResidentialComplex => self.housing += 5,
+            BuildingType::Lighthouse => {
+                self.food_yield += 1;
+                self.gold_yield += 1;
+            }
+            BuildingType::Shipyard => {
+                self.production_yield += 2;
+                self.gold_yield += 1;
+            }
+            BuildingType::SeaPort => {
+                self.gold_yield += 2;
+                self.housing += 1;
+            }
         }
         self.buildings.push(building_type);
 
@@ -182,6 +198,9 @@ impl BuildingType {
             BuildingType::Bakery => (30, 300),
             BuildingType::Supermarket => (40, 400),
             BuildingType::ResidentialComplex => (40, 600),
+            BuildingType::Lighthouse => (10, 100),
+            BuildingType::Shipyard => (16, 200),
+            BuildingType::SeaPort => (20, 250),
         }
     }
 
@@ -191,6 +210,16 @@ impl BuildingType {
 
     pub fn can_construct(&self, researched_technologies: &[TechnologyType]) -> bool {
         match self {
+            BuildingType::Lighthouse => {
+                // @todo: require that city founded on coast
+                researched_technologies.contains(&TechnologyType::MaritimeNavigation)
+            }
+            BuildingType::Shipyard => {
+                researched_technologies.contains(&TechnologyType::AdvancedShipbuilding)
+            }
+            BuildingType::SeaPort => {
+                researched_technologies.contains(&TechnologyType::OceanicTrade)
+            }
             BuildingType::Barracks | BuildingType::Wall => true,
             BuildingType::WallMedieval => {
                 researched_technologies.contains(&TechnologyType::MedievalWarfare)
