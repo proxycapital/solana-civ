@@ -61,7 +61,6 @@ pub enum BuildingType {
     Bakery,
     Supermarket,
     ResidentialComplex,
-    // naval buildings
     Lighthouse,
     Shipyard,
     SeaPort,
@@ -211,7 +210,6 @@ impl BuildingType {
     pub fn can_construct(&self, researched_technologies: &[TechnologyType]) -> bool {
         match self {
             BuildingType::Lighthouse => {
-                // @todo: require that city founded on coast
                 researched_technologies.contains(&TechnologyType::MaritimeNavigation)
             }
             BuildingType::Shipyard => {

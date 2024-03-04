@@ -18,6 +18,7 @@ pub struct Game {
 pub struct Terrain {
     pub terrain: u8,
     pub discovered: bool,
+    pub is_sea: bool,
 }
 
 #[account]
@@ -145,8 +146,11 @@ impl Player {
             TechnologyType::Capitalism => TechnologyType::Astronomy,
             TechnologyType::Construction => TechnologyType::Agriculture,
             TechnologyType::Industrialization => TechnologyType::Construction,
-            TechnologyType::ElectricalPower => TechnologyType::Industrialization,
-            TechnologyType::ModernFarming => TechnologyType::ElectricalPower,
+            TechnologyType::MaritimeNavigation => TechnologyType::Industrialization,
+            TechnologyType::ElectricalPower => TechnologyType::MaritimeNavigation,
+            TechnologyType::AdvancedShipbuilding => TechnologyType::ElectricalPower,
+            TechnologyType::OceanicTrade => TechnologyType::AdvancedShipbuilding,
+            TechnologyType::ModernFarming => TechnologyType::OceanicTrade,
             TechnologyType::Urbanization => TechnologyType::ModernFarming,
         };
         self.has_researched(&prev_tech)

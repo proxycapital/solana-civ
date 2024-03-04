@@ -209,8 +209,12 @@ describe("solciv", () => {
       systemProgram: anchor.web3.SystemProgram.programId,
     };
     const name = "Test City";
+    try {
     await program.methods.foundCity(unit.x, unit.y, unitId, name).accounts(accounts).rpc();
-
+    } catch (e) {
+      console.log('Error during found city tx')
+      console.log(e)
+    }
     const player = await program.account.player.fetch(playerKey);
     expect(player.nextCityId).equal(1);
 

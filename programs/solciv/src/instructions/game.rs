@@ -20,6 +20,8 @@ pub fn initialize_game(
             let index = i * 20 + j;
             ctx.accounts.game.map[index].terrain = map[index];
             ctx.accounts.game.map[index].discovered = false;
+            // ctx.accounts.game.map[index].is_sea = if index == 17 { true } else { false };
+            ctx.accounts.game.map[index].is_sea = false;
         }
     }
 
@@ -121,7 +123,7 @@ fn process_production_queues(player_account: &mut Player, game_key: Pubkey) -> R
     for city in &mut player_account.cities {
         if let Some(item) = city.production_queue.first().cloned() {
             let cost = match item {
-                ProductionItem::Unit(unit_type) => Unit::get_base_stats(unit_type).5,
+                ProductionItem::Unit(unit_type) => Unit::get_base_stats(unit_type).6,
                 ProductionItem::Building(building_type) => {
                     BuildingType::get_base_stats(building_type).0
                 }

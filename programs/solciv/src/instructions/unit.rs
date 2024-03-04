@@ -13,7 +13,7 @@ pub fn move_unit(ctx: Context<MoveUnit>, unit_id: u32, x: u8, y: u8) -> Result<(
         .find(|u| u.unit_id == unit_id)
         .ok_or(UnitError::UnitNotFound)?;
     let base_movement_range = Unit::get_base_movement_range(unit.unit_type);
-
+    
     // Check if the tile is within the map bounds
     if x >= MAP_BOUND || y >= MAP_BOUND {
         return err!(UnitError::OutOfMapBounds);
@@ -22,6 +22,19 @@ pub fn move_unit(ctx: Context<MoveUnit>, unit_id: u32, x: u8, y: u8) -> Result<(
     // Check if the unit has remaining movement_range points
     if unit.movement_range == 0 {
         return err!(UnitError::CannotMove);
+    }
+
+    // Check if the tile type and unit type are both naval
+    let map_idx = (y as usize) * MAP_BOUND as usize + x as usize;
+    
+    // Check if ground unit try to move on sea terrain
+    if ctx.accounts.game.map[map_idx].is_sea && !unit.is_naval {
+        return err!(UnitError::CannotMoveOnSeaTerrain);
+    }
+
+    // Check if naval unit try to move on ground terrain
+    if unit.is_naval && !ctx.accounts.game.map[map_idx].is_sea {
+        return err!(UnitError::CannotMoveOnGroundTerrain);    
     }
 
     // Check if the new position is within the movement_range
@@ -148,6 +161,7 @@ fn calculate_controlled_tiles(x: u8, y: u8, existing_cities: &[City]) -> Vec<Til
 
 pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: String) -> Result<()> {
     // Validate if the unit with `unit_id` is a settler and is at `x` and `y`.
+
     let unit_idx = ctx
         .accounts
         .player_account
