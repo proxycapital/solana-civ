@@ -28,12 +28,13 @@ pub fn move_unit(ctx: Context<MoveUnit>, unit_id: u32, x: u8, y: u8) -> Result<(
     let map_idx = (y as usize) * MAP_BOUND as usize + x as usize;
     
     // Check if ground unit try to move on sea terrain
-    if ctx.accounts.game.map[map_idx].is_sea && !unit.is_naval {
+    // 17 terrain - is a sea terrain
+    if ctx.accounts.game.map[map_idx].terrain == 17 && !unit.is_naval {
         return err!(UnitError::CannotMoveOnSeaTerrain);
     }
 
     // Check if naval unit try to move on ground terrain
-    if unit.is_naval && !ctx.accounts.game.map[map_idx].is_sea {
+    if unit.is_naval && !ctx.accounts.game.map[map_idx].terrain == 17 {
         return err!(UnitError::CannotMoveOnGroundTerrain);    
     }
 

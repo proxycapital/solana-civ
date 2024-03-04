@@ -20,8 +20,6 @@ pub fn initialize_game(
             let index = i * 20 + j;
             ctx.accounts.game.map[index].terrain = map[index];
             ctx.accounts.game.map[index].discovered = false;
-            // ctx.accounts.game.map[index].is_sea = if index == 17 { true } else { false };
-            ctx.accounts.game.map[index].is_sea = false;
         }
     }
 

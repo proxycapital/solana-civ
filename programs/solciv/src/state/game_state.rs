@@ -18,7 +18,6 @@ pub struct Game {
 pub struct Terrain {
     pub terrain: u8,
     pub discovered: bool,
-    pub is_sea: bool,
 }
 
 #[account]
