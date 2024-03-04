@@ -8,6 +8,12 @@ pub enum UnitError {
     #[msg("Unit cannot move this turn")]
     CannotMove,
 
+    #[msg("Ground unit cannot move on sea terrain")]
+    CannotMoveOnSeaTerrain,
+
+    #[msg("Naval unit cannot move on ground terrain")]
+    CannotMoveOnGroundTerrain,
+
     #[msg("Out of movement range")]
     OutOfMovementRange,
 
