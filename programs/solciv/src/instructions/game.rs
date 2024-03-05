@@ -166,7 +166,7 @@ fn process_npc_movements_and_attacks(
     npc_units: &mut Vec<Unit>,
     player: &mut Player,
     difficulty_level: u8,
-    game_map: [Terrain; 400],
+    game_map: &[Terrain; 400],
 ) -> Result<()> {
     let npc_units_count = npc_units.len();
     for i in 0..npc_units_count {
@@ -291,7 +291,7 @@ fn process_npc_movements_and_attacks(
                     && !is_occupied(new_x, new_y, &player.units, npc_units, &player.cities)
                 {
                     // also check if next cell if water or now
-                    let map_idx = (new_y as usize) * MAP_BOUND as usize + new_x as usize;
+                    let map_idx: usize = (new_y as usize) * MAP_BOUND as usize + new_x as usize;
     
                     // Check if ground unit try to move on sea terrain
                     
@@ -356,7 +356,7 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
         &mut ctx.accounts.npc_account.units,
         player_account,
         ctx.accounts.game.difficulty_level,
-        ctx.accounts.game.map,
+        &ctx.accounts.game.map,
     )?;
 
     // Retain only alive units in the game
