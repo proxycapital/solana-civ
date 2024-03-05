@@ -14,3 +14,5 @@ pub const SPAWN_INTERVAL: [u8; 3] = [20, 15, 10];
 
 // default storage capacity per strategic resource
 pub const STORAGE_CAPACITY: u8 = 50;
+
+pub const SEA_TERRAIN: u8 = 17;
