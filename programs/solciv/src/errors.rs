@@ -101,6 +101,9 @@ pub enum CityError {
     #[msg("Technology is not unlocked")]
     TechnologyNotResearched,
 
+    #[msg["City must be located on the coast"]]
+    CityMustBeOnCoast,
+
     #[msg("Not enough wood")]
     InsufficientWood,
 

@@ -38,6 +38,11 @@ pub fn add_to_production_queue(
 
     let total_cost = match &item {
         ProductionItem::Building(building_type) => {
+            // check if city build on coast
+            if matches!(building_type, BuildingType::Shipyard | BuildingType::SeaPort | BuildingType::Lighthouse) && !city.on_coast {
+                return err!(CityError::CityMustBeOnCoast);
+            }
+            
             if !building_type.can_construct(&player_account.researched_technologies) {
                 return err!(CityError::TechnologyNotResearched);
             }
@@ -220,6 +225,10 @@ pub fn purchase_with_gold(
     // Add the unit/building to the player's assets.
     match &item {
         ProductionItem::Building(building_type) => {
+            // check if city build on coast
+            if matches!(building_type, BuildingType::Shipyard | BuildingType::SeaPort | BuildingType::Lighthouse) && !city.on_coast {
+                return err!(CityError::CityMustBeOnCoast);
+            }
             // Check if the technology is unlocked
             if !building_type.can_construct(&researched_technologies) {
                 return err!(CityError::TechnologyNotResearched);
