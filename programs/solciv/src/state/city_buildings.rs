@@ -25,6 +25,7 @@ pub struct City {
     pub controlled_tiles: Vec<TileCoordinate>,
     pub level: u32,
     pub growth_points: u32,
+    pub on_coast: bool,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Hash)]
@@ -75,6 +76,7 @@ pub struct NewCityParams {
     pub name: String,
     pub health: u32,
     pub controlled_tiles: Vec<TileCoordinate>,
+    pub on_coast: bool,
 }
 
 impl City {
@@ -102,6 +104,7 @@ impl City {
             housing: 4,
             level: 0,
             growth_points: 0,
+            on_coast: params.on_coast,
         }
     }
 
@@ -207,16 +210,16 @@ impl BuildingType {
         BuildingType::get_base_stats(building_type).1
     }
 
-    pub fn can_construct(&self, researched_technologies: &[TechnologyType]) -> bool {
+    pub fn can_construct(&self, researched_technologies: &[TechnologyType], on_coast: bool) -> bool {
         match self {
             BuildingType::Lighthouse => {
-                researched_technologies.contains(&TechnologyType::MaritimeNavigation)
+                researched_technologies.contains(&TechnologyType::MaritimeNavigation) && on_coast
             }
             BuildingType::Shipyard => {
-                researched_technologies.contains(&TechnologyType::AdvancedShipbuilding)
+                researched_technologies.contains(&TechnologyType::AdvancedShipbuilding) && on_coast
             }
             BuildingType::SeaPort => {
-                researched_technologies.contains(&TechnologyType::OceanicTrade)
+                researched_technologies.contains(&TechnologyType::OceanicTrade) && on_coast
             }
             BuildingType::Barracks | BuildingType::Wall => true,
             BuildingType::WallMedieval => {
