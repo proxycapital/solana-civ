@@ -38,11 +38,10 @@ pub fn add_to_production_queue(
 
     let total_cost = match &item {
         ProductionItem::Building(building_type) => {
-            // check if city build on coast
+            // check if city build on coast to build sea buildings
             if matches!(building_type, BuildingType::Shipyard | BuildingType::SeaPort | BuildingType::Lighthouse) && !city.on_coast {
                 return err!(CityError::CityMustBeOnCoast);
             }
-            
             if !building_type.can_construct(&player_account.researched_technologies) {
                 return err!(CityError::TechnologyNotResearched);
             }
@@ -55,6 +54,10 @@ pub fn add_to_production_queue(
             0 // No cost for building types
         }
         ProductionItem::Unit(unit_type) => {
+            // check if city build on coast to recruit naval units
+            if matches!(unit_type, UnitType::Galley | UnitType::Frigate | UnitType::Battleship) && !city.on_coast {
+                return err!(CityError::CityMustBeOnCoast);
+            }
             if !unit_type.can_recruit(&player_account.researched_technologies) {
                 return err!(CityError::TechnologyNotResearched);
             }
