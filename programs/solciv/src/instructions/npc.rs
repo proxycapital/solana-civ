@@ -15,6 +15,7 @@ pub fn initialize_npc(
     ctx.accounts.game.npc = ctx.accounts.npc_account.key();
 
     let is_npc1_on_coast = check_is_on_coast(npc_position_1.x, npc_position_1.y, &ctx.accounts.game.map);
+    let npc1_name: String = if is_npc1_on_coast { "Pirate Haven".to_string() } else { "Barbarian Village".to_string() };
 
     let npc_one = NewCityParams {
         city_id: 0,
@@ -22,7 +23,7 @@ pub fn initialize_npc(
         game: ctx.accounts.game.key(),
         x: npc_position_1.x,
         y: npc_position_1.y,
-        name: "Barbarian Village".to_string(),
+        name: npc1_name,
         health: 1000,
         controlled_tiles: vec![TileCoordinate {
             x: npc_position_1.x,
@@ -32,6 +33,7 @@ pub fn initialize_npc(
     };
 
     let is_npc2_on_coast = check_is_on_coast(npc_position_2.x, npc_position_2.y, &ctx.accounts.game.map);
+    let npc2_name: String = if is_npc2_on_coast { "Pirate Haven".to_string() } else { "Barbarian Village".to_string() };
 
     let npc_two = NewCityParams {
         city_id: 1,
@@ -39,7 +41,7 @@ pub fn initialize_npc(
         game: ctx.accounts.game.key(),
         x: npc_position_2.x,
         y: npc_position_2.y,
-        name: "Barbarian Village".to_string(),
+        name: npc2_name,
         health: 1000,
         controlled_tiles: vec![TileCoordinate {
             x: npc_position_2.x,
@@ -48,7 +50,7 @@ pub fn initialize_npc(
         on_coast: is_npc2_on_coast,
     };
     ctx.accounts.npc_account.cities = vec![City::new(npc_one), City::new(npc_two)];
-
+    
     // Initialize units for the NPC.
     ctx.accounts.npc_account.units = vec![Unit::new(
         0,
@@ -58,6 +60,8 @@ pub fn initialize_npc(
         npc_position_1.x + 1,
         npc_position_1.y,
     )];
+
+
     ctx.accounts.npc_account.next_unit_id = 1;
     ctx.accounts.npc_account.next_city_id = 2;
 
@@ -65,6 +69,7 @@ pub fn initialize_npc(
 
     Ok(())
 }
+
 
 #[derive(Accounts)]
 pub struct InitializeNpc<'info> {

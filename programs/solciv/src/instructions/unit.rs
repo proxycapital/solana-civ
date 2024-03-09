@@ -159,64 +159,6 @@ fn calculate_controlled_tiles(x: u8, y: u8, existing_cities: &[City]) -> Vec<Til
     tiles
 }
 
-// return 8 tiles around passed tile as a center
-fn adjacent_tiles(tile: &TileCoordinate) -> Vec<TileCoordinate> {
-    vec![
-        // left and write
-        TileCoordinate {
-            x: tile.x,
-            y: tile.y.saturating_sub(1),
-        },
-        TileCoordinate {
-            x: tile.x,
-            y: tile.y + 1,
-        },
-        // top and bottom
-        TileCoordinate {
-            x: tile.x.saturating_sub(1),
-            y: tile.y,
-        },
-        TileCoordinate {
-            x: tile.x + 1,
-            y: tile.y,
-        },
-        // right top and bottom
-        TileCoordinate {
-            x: tile.x + 1,
-            y: tile.y + 1,
-        },
-        TileCoordinate {
-            x: tile.x + 1,
-            y: tile.y.saturating_sub(1),
-        }, 
-        // left top and bottom
-        TileCoordinate {
-            x: tile.x.saturating_sub(1),
-            y: tile.y + 1,
-        },
-        TileCoordinate {
-            x: tile.x.saturating_sub(1),
-            y: tile.y.saturating_sub(1),
-        }, 
-    ]
-}
-
-fn check_is_on_coast(x: u8, y: u8, game_map: &[Terrain; 400]) -> bool {
-    let adjacent_tiles = adjacent_tiles(&TileCoordinate { x, y });
-
-    let mut is_on_coast = false;
-
-    for adjacent_tile in adjacent_tiles {
-        let map_idx = (adjacent_tile.y as usize) * MAP_BOUND as usize + adjacent_tile.x as usize;
-        if game_map[map_idx].terrain == SEA_TERRAIN {
-            is_on_coast = true;
-            break;
-        }
-    }
-
-    is_on_coast
-}
-
 pub fn found_city(ctx: Context<FoundCity>, x: u8, y: u8, unit_id: u32, name: String) -> Result<()> {
     // Validate if the unit with `unit_id` is a settler and is at `x` and `y`.
 

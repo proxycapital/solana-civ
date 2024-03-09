@@ -250,6 +250,9 @@ pub fn purchase_with_gold(
             city.construct_building(*building_type)?;
         }
         ProductionItem::Unit(unit_type) => {
+            if matches!(unit_type, UnitType::Galley | UnitType::Frigate | UnitType::Battleship) && !city.on_coast {
+                return err!(CityError::CityMustBeOnCoast);
+            }
             if !unit_type.can_recruit(&researched_technologies) {
                 return err!(CityError::TechnologyNotResearched);
             }
