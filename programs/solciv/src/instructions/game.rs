@@ -1,5 +1,6 @@
 use crate::consts::*;
 use crate::state::*;
+use crate::utils::*;
 use anchor_lang::prelude::*;
 use std::collections::HashSet;
 use std::iter::FromIterator;
@@ -315,8 +316,11 @@ fn process_npc_movements_and_attacks(
                 {
                     let map_idx: usize = (new_y as usize) * MAP_BOUND as usize + new_x as usize;
     
-                    // Don't allow not naval npc unit go to sea tile
-                    if game_map[map_idx].terrain == SEA_TERRAIN && !npc_units[i].is_naval {
+
+                    // Don't allow not naval npc unit go to sea tile and naval unit move to ground tiles
+                    if 
+                        (game_map[map_idx].terrain == SEA_TERRAIN && !npc_units[i].is_naval) || 
+                        (npc_units[i].is_naval && game_map[map_idx].terrain != SEA_TERRAIN) {
                         msg!(
                             "NPC unit #{} cannot move to sea terrain",
                             npc_units[i].unit_id,
@@ -335,6 +339,26 @@ fn process_npc_movements_and_attacks(
                     );
                 }
             }
+        // case for naval units random move if player dont have city on coast of any naval units    
+        } else {
+            if !npc_units[i].is_naval { continue; }
+            
+            let mut sea_tiles_around: Vec<TileCoordinate> = vec![];
+            let adjacent_tiles = adjacent_tiles(&TileCoordinate { x: npc_units[i].x, y: npc_units[i].y });
+
+            for adjacent_tile in adjacent_tiles {
+                let map_idx = (adjacent_tile.y as usize) * MAP_BOUND as usize + adjacent_tile.x as usize;
+                if game_map[map_idx].terrain == SEA_TERRAIN {
+                    sea_tiles_around.push(TileCoordinate { x: adjacent_tile.x, y: adjacent_tile.y });
+                }
+            }
+
+            let clock = Clock::get()?;
+            let random_factor = clock.unix_timestamp as usize % sea_tiles_around.len();
+            
+            // move naval unit to new random tile
+            npc_units[i].x = sea_tiles_around[random_factor].x;
+            npc_units[i].y = sea_tiles_around[random_factor].y;
         }
     }
     Ok(())
