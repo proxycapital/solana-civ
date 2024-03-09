@@ -195,19 +195,43 @@ fn process_npc_movements_and_attacks(
         let mut min_dist = u16::MAX;
         let mut closest_target: Option<(u8, u8)> = None;
 
-        // Find the closest player's unit or city to the NPC unit
-        for player_unit in player.units.iter().filter(|u| u.is_alive) {
+        // ground barbarian units should move as always
+        // naval barabrian units should attack only player cities with on_coast prop
+        // or player naval units (as all sea's combined)
+        // if there are not player city on coat or no player naval units - barbarians should move 
+        // randomly on sea tiles  
+
+        // Find the closest player's ground unit or city to the ground NPC unit
+        for player_unit in player.units.iter().filter(|u| u.is_alive && !u.is_naval) {
+            if npc_units[i].is_naval { continue; };
+
             let dist = ((npc_units[i].x as i16 - player_unit.x as i16).pow(2)
                 + (npc_units[i].y as i16 - player_unit.y as i16).pow(2))
                 as u16;
-            // dont allow ground npc chase for naval units
-            if dist < min_dist && !player_unit.is_naval{
+
+            if dist < min_dist {
+                min_dist = dist;
+                closest_target = Some((player_unit.x, player_unit.y));
+            }
+        }
+
+        // Find the closest player's naval unit to the naval NPC unit
+        for player_unit in player.units.iter().filter(|u| u.is_alive && u.is_naval) {
+            if !npc_units[i].is_naval { continue; }
+
+            let dist = ((npc_units[i].x as i16 - player_unit.x as i16).pow(2)
+                + (npc_units[i].y as i16 - player_unit.y as i16).pow(2))
+                as u16;
+
+            if dist < min_dist {
                 min_dist = dist;
                 closest_target = Some((player_unit.x, player_unit.y));
             }
         }
 
         for city in player.cities.iter() {
+            if npc_units[i].is_naval && !city.on_coast { continue; }
+
             let dist = ((npc_units[i].x as i16 - city.x as i16).pow(2)
                 + (npc_units[i].y as i16 - city.y as i16).pow(2)) as u16;
             if dist < min_dist {
@@ -215,7 +239,6 @@ fn process_npc_movements_and_attacks(
                 closest_target = Some((city.x, city.y));
             }
         }
-
         // If a closest target was found, make decisions for NPC units based on the proximity to this target
         if let Some((target_x, target_y)) = closest_target {
             let dist_x = (npc_units[i].x as i16 - target_x as i16).abs();
@@ -290,12 +313,10 @@ fn process_npc_movements_and_attacks(
                     && new_y < MAP_BOUND
                     && !is_occupied(new_x, new_y, &player.units, npc_units, &player.cities)
                 {
-                    // also check if next cell if water or now
                     let map_idx: usize = (new_y as usize) * MAP_BOUND as usize + new_x as usize;
     
-                    // Check if ground unit try to move on sea terrain
-                    
-                    if game_map[map_idx].terrain == SEA_TERRAIN  {
+                    // Don't allow not naval npc unit go to sea tile
+                    if game_map[map_idx].terrain == SEA_TERRAIN && !npc_units[i].is_naval {
                         msg!(
                             "NPC unit #{} cannot move to sea terrain",
                             npc_units[i].unit_id,
@@ -448,36 +469,47 @@ pub fn end_turn(ctx: Context<EndTurn>) -> Result<()> {
         let mut next_npc_id = ctx.accounts.npc_account.next_unit_id;
 
         for city in &ctx.accounts.npc_account.cities {
-            let unit_type = match epoch {
-                0 => {
-                    if random_factor < 5 {
-                        UnitType::Warrior
-                    } else {
-                        UnitType::Archer
-                    }
+            let unit_type;
+
+            if city.on_coast {
+                unit_type = match epoch {
+                    0 => { UnitType::Galley }
+                    1 => { UnitType::Frigate }
+                    2 => { UnitType::Battleship }
+                    _ => { UnitType::Galley }
                 }
-                1 => {
-                    if random_factor < 5 {
-                        UnitType::Swordsman
-                    } else {
-                        UnitType::Horseman
+            } else {
+                unit_type = match epoch {
+                    0 => {
+                        if random_factor < 5 {
+                            UnitType::Warrior
+                        } else {
+                            UnitType::Archer
+                        }
                     }
-                }
-                2 => {
-                    if random_factor < 5 {
-                        UnitType::Crossbowman
-                    } else {
-                        UnitType::Musketman
+                    1 => {
+                        if random_factor < 5 {
+                            UnitType::Swordsman
+                        } else {
+                            UnitType::Horseman
+                        }
                     }
-                }
-                _ => {
-                    if random_factor < 5 {
-                        UnitType::Rifleman
-                    } else {
-                        UnitType::Tank
+                    2 => {
+                        if random_factor < 5 {
+                            UnitType::Crossbowman
+                        } else {
+                            UnitType::Musketman
+                        }
                     }
-                } // Default to latest epoch
-            };
+                    _ => {
+                        if random_factor < 5 {
+                            UnitType::Rifleman
+                        } else {
+                            UnitType::Tank
+                        }
+                    } // Default to latest epoch
+                };
+            }
 
             let new_unit = Unit::new(
                 next_npc_id,
