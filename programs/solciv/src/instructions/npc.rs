@@ -1,5 +1,6 @@
 use crate::consts::*;
 use crate::state::*;
+use crate::utils::*;
 use anchor_lang::prelude::*;
 
 pub fn initialize_npc(
@@ -13,6 +14,8 @@ pub fn initialize_npc(
     ctx.accounts.npc_account.next_unit_id = 0;
     ctx.accounts.game.npc = ctx.accounts.npc_account.key();
 
+    let is_npc1_on_coast = check_is_on_coast(npc_position_1.x, npc_position_1.y, &ctx.accounts.game.map);
+
     let npc_one = NewCityParams {
         city_id: 0,
         player: ctx.accounts.npc_account.player,
@@ -25,7 +28,11 @@ pub fn initialize_npc(
             x: npc_position_1.x,
             y: npc_position_1.y,
         }],
+        on_coast: is_npc1_on_coast,
     };
+
+    let is_npc2_on_coast = check_is_on_coast(npc_position_2.x, npc_position_2.y, &ctx.accounts.game.map);
+
     let npc_two = NewCityParams {
         city_id: 1,
         player: ctx.accounts.npc_account.player,
@@ -38,6 +45,7 @@ pub fn initialize_npc(
             x: npc_position_2.x,
             y: npc_position_2.y,
         }],
+        on_coast: is_npc2_on_coast,
     };
     ctx.accounts.npc_account.cities = vec![City::new(npc_one), City::new(npc_two)];
 
