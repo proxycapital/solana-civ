@@ -311,36 +311,36 @@ fn process_npc_movements_and_attacks(
                     let new_map_idx: usize = (new_y as usize) * MAP_BOUND as usize + new_x as usize;
     
 
-                    // Don't allow ground npc unit go to sea tile and naval units go to ground tiles
+                    // Handle new pathfinding for ground npc unit when they stuck behind sea tile and 
+                    // for naval units when they stuck  tile and naval units go to ground tiles
                     if 
                         (game_map[new_map_idx].terrain == SEA_TERRAIN && !npc_units[i].is_naval) || 
                         (npc_units[i].is_naval && game_map[new_map_idx].terrain != SEA_TERRAIN) {
                         
-                        // check all adjastest tile based on current unit.x and unit.y
+                        // process ground unit next move
                         if !npc_units[i].is_naval { 
-                            let adjacent_ground_tiles: Vec<TileCoordinate> = adjacent_tiles(&TileCoordinate { x: npc_units[i].x, y: npc_units[i].y })
-                                .into_iter()
-                                .filter(|&adjacent_tile| {
-                                    let map_idx = (adjacent_tile.y as usize) * MAP_BOUND as usize + adjacent_tile.x as usize;
-                                    game_map[map_idx].terrain != SEA_TERRAIN
-                                })
-                                .collect();
-                            // calculte distance from each cell and move to the first with lowest distance
-                            let mut min_distances = vec![];
-
-                            for (index, adjacent_ground_tile) in adjacent_ground_tiles.iter().enumerate() {
-                                let min_dist = ((adjacent_ground_tile.x as i16 - target_x as i16).pow(2)
-                                    + (adjacent_ground_tile.y as i16 - target_y as i16).pow(2))
-                                    as u16;
-                                min_distances.push((min_dist, index));
+                            
+                            if let Some(closest_tile) = find_closest_tile_for_blocked_units(
+                                TileCoordinate { x: npc_units[i].x, y: npc_units[i].y},
+                                TileCoordinate { x: target_x, y: target_y },
+                                &game_map,
+                                false,
+                            ) {
+                                npc_units[i].x = closest_tile.x;
+                                npc_units[i].y = closest_tile.y;
                             }
-                            // find first tile with minimal distance
-                            let min_tile = min_distances.iter().min_by_key(|&(value, _)| value);
-                            if let Some((_, index_of_tile)) = min_tile {
-                                npc_units[i].x = adjacent_ground_tiles[*index_of_tile].x;
-                                npc_units[i].y = adjacent_ground_tiles[*index_of_tile].y;
+                        } else {
+                            // process naval unit next move
+                            if let Some(closest_tile) = find_closest_tile_for_blocked_units(
+                                TileCoordinate { x: npc_units[i].x, y: npc_units[i].y},
+                                TileCoordinate { x: target_x, y: target_y },
+                                &game_map,
+                                true
+                            ) {
+                                npc_units[i].x = closest_tile.x;
+                                npc_units[i].y = closest_tile.y;
                             }
-                        } 
+                        }
 
                         msg!(
                             "NPC unit #{} cannot move to sea terrain",
