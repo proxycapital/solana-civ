@@ -196,12 +196,6 @@ fn process_npc_movements_and_attacks(
         let mut min_dist = u16::MAX;
         let mut closest_target: Option<(u8, u8)> = None;
 
-        // ground barbarian units should move as always
-        // naval barabrian units should attack only player cities with on_coast prop
-        // or player naval units (as all sea's combined)
-        // if there are not player city on coat or no player naval units - barbarians should move 
-        // randomly on sea tiles  
-
         // Find the closest player's ground unit or city to the ground NPC unit
         for player_unit in player.units.iter().filter(|u| u.is_alive && !u.is_naval) {
             if npc_units[i].is_naval { continue; };
@@ -314,13 +308,40 @@ fn process_npc_movements_and_attacks(
                     && new_y < MAP_BOUND
                     && !is_occupied(new_x, new_y, &player.units, npc_units, &player.cities)
                 {
-                    let map_idx: usize = (new_y as usize) * MAP_BOUND as usize + new_x as usize;
+                    let new_map_idx: usize = (new_y as usize) * MAP_BOUND as usize + new_x as usize;
     
 
-                    // Don't allow not naval npc unit go to sea tile and naval unit move to ground tiles
+                    // Don't allow ground npc unit go to sea tile and naval units go to ground tiles
                     if 
-                        (game_map[map_idx].terrain == SEA_TERRAIN && !npc_units[i].is_naval) || 
-                        (npc_units[i].is_naval && game_map[map_idx].terrain != SEA_TERRAIN) {
+                        (game_map[new_map_idx].terrain == SEA_TERRAIN && !npc_units[i].is_naval) || 
+                        (npc_units[i].is_naval && game_map[new_map_idx].terrain != SEA_TERRAIN) {
+                        
+                        // check all adjastest tile based on current unit.x and unit.y
+                        if !npc_units[i].is_naval { 
+                            let adjacent_ground_tiles: Vec<TileCoordinate> = adjacent_tiles(&TileCoordinate { x: npc_units[i].x, y: npc_units[i].y })
+                                .into_iter()
+                                .filter(|&adjacent_tile| {
+                                    let map_idx = (adjacent_tile.y as usize) * MAP_BOUND as usize + adjacent_tile.x as usize;
+                                    game_map[map_idx].terrain != SEA_TERRAIN
+                                })
+                                .collect();
+                            // calculte distance from each cell and move to the first with lowest distance
+                            let mut min_distances = vec![];
+
+                            for (index, adjacent_ground_tile) in adjacent_ground_tiles.iter().enumerate() {
+                                let min_dist = ((adjacent_ground_tile.x as i16 - target_x as i16).pow(2)
+                                    + (adjacent_ground_tile.y as i16 - target_y as i16).pow(2))
+                                    as u16;
+                                min_distances.push((min_dist, index));
+                            }
+                            // find first tile with minimal distance
+                            let min_tile = min_distances.iter().min_by_key(|&(value, _)| value);
+                            if let Some((_, index_of_tile)) = min_tile {
+                                npc_units[i].x = adjacent_ground_tiles[*index_of_tile].x;
+                                npc_units[i].y = adjacent_ground_tiles[*index_of_tile].y;
+                            }
+                        } 
+
                         msg!(
                             "NPC unit #{} cannot move to sea terrain",
                             npc_units[i].unit_id,
@@ -343,22 +364,20 @@ fn process_npc_movements_and_attacks(
         } else {
             if !npc_units[i].is_naval { continue; }
             
-            let mut sea_tiles_around: Vec<TileCoordinate> = vec![];
-            let adjacent_tiles = adjacent_tiles(&TileCoordinate { x: npc_units[i].x, y: npc_units[i].y });
-
-            for adjacent_tile in adjacent_tiles {
-                let map_idx = (adjacent_tile.y as usize) * MAP_BOUND as usize + adjacent_tile.x as usize;
-                if game_map[map_idx].terrain == SEA_TERRAIN {
-                    sea_tiles_around.push(TileCoordinate { x: adjacent_tile.x, y: adjacent_tile.y });
-                }
-            }
+            let adjacent_sea_tiles: Vec<TileCoordinate> = adjacent_tiles(&TileCoordinate { x: npc_units[i].x, y: npc_units[i].y })
+                .into_iter()
+                .filter(|&adjacent_tile| {
+                    let map_idx = (adjacent_tile.y as usize) * MAP_BOUND as usize + adjacent_tile.x as usize;
+                    game_map[map_idx].terrain == SEA_TERRAIN
+                })
+                .collect();
 
             let clock = Clock::get()?;
-            let random_factor = clock.unix_timestamp as usize % sea_tiles_around.len();
+            let random_factor = clock.unix_timestamp as usize % adjacent_sea_tiles.len();
             
             // move naval unit to new random tile
-            npc_units[i].x = sea_tiles_around[random_factor].x;
-            npc_units[i].y = sea_tiles_around[random_factor].y;
+            npc_units[i].x = adjacent_sea_tiles[random_factor].x;
+            npc_units[i].y = adjacent_sea_tiles[random_factor].y;
         }
     }
     Ok(())
