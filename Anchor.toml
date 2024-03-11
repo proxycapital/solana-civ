@@ -5,7 +5,7 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-solciv = "D5XVnrnLoyS9WgHdFyYjj2uFpETifzgTLpoJzt4NPYNG"
+solciv = "Dhk1yZQ92GzW4GsGM9DwwZmyxfZgk6RMCsZHh3uaLhoX"
 
 [registry]
 url = "https://api.apr.dev"

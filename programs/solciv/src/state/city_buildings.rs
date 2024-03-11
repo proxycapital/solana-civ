@@ -210,16 +210,16 @@ impl BuildingType {
         BuildingType::get_base_stats(building_type).1
     }
 
-    pub fn can_construct(&self, researched_technologies: &[TechnologyType], on_coast: bool) -> bool {
+    pub fn can_construct(&self, researched_technologies: &[TechnologyType]) -> bool {
         match self {
             BuildingType::Lighthouse => {
-                researched_technologies.contains(&TechnologyType::MaritimeNavigation) && on_coast
+                researched_technologies.contains(&TechnologyType::MaritimeNavigation)
             }
             BuildingType::Shipyard => {
-                researched_technologies.contains(&TechnologyType::AdvancedShipbuilding) && on_coast
+                researched_technologies.contains(&TechnologyType::AdvancedShipbuilding)
             }
             BuildingType::SeaPort => {
-                researched_technologies.contains(&TechnologyType::OceanicTrade) && on_coast
+                researched_technologies.contains(&TechnologyType::OceanicTrade)
             }
             BuildingType::Barracks | BuildingType::Wall => true,
             BuildingType::WallMedieval => {

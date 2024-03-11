@@ -48,11 +48,11 @@ impl TechnologyType {
             TechnologyType::Construction => 8,
             TechnologyType::Industrialization => 12,
             TechnologyType::ElectricalPower => 16,
-            TechnologyType::ModernFarming => 20,
+            TechnologyType::ModernFarming => 24,
             TechnologyType::Urbanization => 30,
-            TechnologyType::MaritimeNavigation => 12,
-            TechnologyType::AdvancedShipbuilding => 20,
-            TechnologyType::OceanicTrade => 30,
+            TechnologyType::MaritimeNavigation => 14,
+            TechnologyType::AdvancedShipbuilding => 18,
+            TechnologyType::OceanicTrade => 20,
         }
     }
 }
